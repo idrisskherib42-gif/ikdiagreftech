@@ -9,6 +9,7 @@ const LEGACY_ITERATIONS = 120000;
 
 const SESSION_KEY = "session";
 const LOGIN_ATTEMPTS_KEY = "login_attempts";
+const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12h : une journée de mission, marge incluse
 
 // Racine réelle de l'appli, déduite de l'URL de ce module lui-même plutôt que
 // codée en dur en "/" : fonctionne aussi bien servie à la racine (localhost)
@@ -155,7 +156,18 @@ export function logout() {
 }
 
 export function currentSession() {
-  return sessionGet(SESSION_KEY, null);
+  const s = sessionGet(SESSION_KEY, null);
+  if (!s) return null;
+  // Expiration absolue de session, même si l'onglet reste ouvert (ex. poste
+  // laissé sans surveillance sur un chantier toute une journée). Au-delà, la
+  // session est traitée comme invalide et nettoyée, sans attendre la
+  // fermeture de l'onglet.
+  const ageMs = Date.now() - new Date(s.startedAt).getTime();
+  if (!Number.isFinite(ageMs) || ageMs > SESSION_MAX_AGE_MS) {
+    sessionRemove(SESSION_KEY);
+    return null;
+  }
+  return s;
 }
 
 export function isAuthenticated() {
@@ -175,7 +187,12 @@ export function currentUser() {
   return users.find((u) => u.id === s.userId) || null;
 }
 
-const PUBLIC_PAGES = [appUrl("login.html"), appUrl("register.html"), appUrl("")].map((u) => new URL(u).pathname);
+// "" (racine de l'appli) n'est PAS une page publique : contrairement à login/
+// register, la page d'accueil affiche le tableau de bord et doit exiger une
+// session valide comme n'importe quelle autre page privée. Un visiteur qui
+// arrive sur l'URL racine (ex. lien direct, favori) doit être envoyé vers la
+// connexion, jamais voir le tableau de bord vide s'afficher.
+const PUBLIC_PAGES = [appUrl("login.html"), appUrl("register.html")].map((u) => new URL(u).pathname);
 
 export function requireAuth() {
   if (!isAuthenticated()) {
