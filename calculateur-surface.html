@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Calculateur de surface — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Outils</span>
+      <h1>Surface &amp; triangulation</h1>
+      <p class="muted">Calcule la surface d'une pièce rectangulaire, ou d'une pièce sans angle droit par décomposition en triangles.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn is-active" data-tab="rect">Pièce rectangulaire</button>
+      <button class="tab-btn" data-tab="tri">Pièce irrégulière (triangulation)</button>
+    </div>
+
+    <div class="tab-panel is-active" id="panel-rect">
+      <div class="card">
+        <h3>Longueur × largeur</h3>
+        <div class="field"><label for="rect-l">Longueur (m)</label><input type="number" step="0.01" id="rect-l" /></div>
+        <div class="field"><label for="rect-w">Largeur (m)</label><input type="number" step="0.01" id="rect-w" /></div>
+        <div id="rect-result" class="calc-total">—</div>
+        <p class="form-error" id="rect-error" hidden></p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-tri">
+      <div id="tri-flow"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { rectangleArea, round2 } from "/assets/js/calculators.js";
+    import { qsa } from "/assets/js/util.js";
+    import { mountTriangulationFlow } from "/assets/js/triangulation-flow.js";
+
+    if (!mount("outils")) throw new Error("redirect");
+
+    mountTriangulationFlow(document.getElementById("tri-flow"));
+
+    // Tabs
+    qsa(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        qsa(".tab-btn").forEach((b) => b.classList.remove("is-active"));
+        qsa(".tab-panel").forEach((p) => p.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        document.getElementById(`panel-${btn.dataset.tab}`).classList.add("is-active");
+        // Le canvas de dessin est initialisé pendant que son onglet est
+        // encore caché (display:none => dimensions nulles) : on force un
+        // redimensionnement une fois l'onglet réellement visible.
+        window.dispatchEvent(new Event("resize"));
+      });
+    });
+
+    // Rectangle
+    function recomputeRect() {
+      const l = document.getElementById("rect-l").value;
+      const w = document.getElementById("rect-w").value;
+      const errorBox = document.getElementById("rect-error");
+      const resultBox = document.getElementById("rect-result");
+      if (!l || !w) { resultBox.textContent = "—"; errorBox.hidden = true; return; }
+      const r = rectangleArea(l, w);
+      if (!r.valid) { errorBox.textContent = r.error; errorBox.hidden = false; resultBox.textContent = "—"; return; }
+      errorBox.hidden = true;
+      resultBox.textContent = `${round2(r.area)} m²`;
+    }
+    document.getElementById("rect-l").addEventListener("input", recomputeRect);
+    document.getElementById("rect-w").addEventListener("input", recomputeRect);
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+extracted/
+extracted2/
+extracted3/
+png_batch/
+png_test/
+access.log
+test_out.txt
+test2_out.txt
+pdf2png.ps1
+pdfbatch.ps1
+pdfextract.ps1
+pdfextract2.ps1
+pdfgrep.ps1
+ikdiag-ref-technique.zip

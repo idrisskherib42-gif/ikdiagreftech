@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Diagnostic — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header" id="module-header"></div>
+    <div id="disclaimer-host"></div>
+
+    <div class="tabs">
+      <button class="tab-btn is-active" data-tab="guide">Méthode pas à pas</button>
+      <button class="tab-btn" data-tab="checklist">Checklist</button>
+      <button class="tab-btn" data-tab="reglement">Cadre réglementaire</button>
+    </div>
+
+    <div class="tab-panel is-active" id="panel-guide"></div>
+    <div class="tab-panel" id="panel-checklist"></div>
+    <div class="tab-panel" id="panel-reglement"></div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
+    import { getMission, toggleChecklistItem } from "/assets/js/missions.js";
+    import { renderChecklist } from "/assets/js/checklist-widget.js";
+    import { getParam, qsa, escapeHtml, toast } from "/assets/js/util.js";
+
+    if (!mount("diagnostics")) throw new Error("redirect");
+
+    const typeKey = getParam("type");
+    const missionId = getParam("mission");
+    const def = DIAGNOSTIC_TYPES[typeKey];
+
+    if (!def) {
+      document.getElementById("page-content").innerHTML = `<div class="card empty-state"><p>Module de diagnostic inconnu.</p><a class="btn btn--sm" href="/diagnostics.html">Retour</a></div>`;
+      throw new Error("unknown module");
+    }
+
+    document.getElementById("module-header").innerHTML = `
+      <span class="eyebrow">${missionId ? "Mission en cours" : "Consultation libre"}</span>
+      <h1>${def.fullLabel}</h1>
+      <p class="muted">${def.summary}</p>
+      ${missionId ? `<a href="/mission-detail.html?id=${missionId}" class="text-sm" style="font-weight:600;color:var(--primary-dark);">&larr; Retour à la mission</a>` : ""}
+    `;
+
+    document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
+      "Aide-mémoire de terrain : ne remplace pas la norme, la méthode officielle ni votre certification. Les points marqués « à vérifier » doivent être reconfirmés sur une source officielle avant usage professionnel."
+    );
+
+    qsa(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        qsa(".tab-btn").forEach((b) => b.classList.remove("is-active"));
+        qsa(".tab-panel").forEach((p) => p.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        document.getElementById(`panel-${btn.dataset.tab}`).classList.add("is-active");
+      });
+    });
+
+    // Guide pas à pas
+    document.getElementById("panel-guide").innerHTML = `
+      <div class="card">
+        <h3>Champ d'application</h3>
+        <p class="text-sm">${def.champDapplication}</p>
+        <p class="text-sm"><strong>Durée de validité :</strong> ${def.validite.texte}
+          <span class="confidence-tag confidence-tag--${def.validite.confidence}">${def.validite.confidence === "etabli" ? "établi" : "à vérifier"}</span>
+        </p>
+        ${def.validite.note ? `<p class="text-xs muted">${def.validite.note}</p>` : ""}
+      </div>
+      <div class="card">
+        <h3>Étapes</h3>
+        <div class="stepper">
+          ${def.steps.map((s, i) => `
+            <div class="step">
+              <div class="step-index">${i + 1}</div>
+              <div class="step-body">
+                <strong>${escapeHtml(s.title)}</strong>
+                <p class="text-sm" style="margin-top:4px;">${escapeHtml(s.description)}</p>
+                ${s.tips.length ? `<ul class="step-tips">${s.tips.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>` : ""}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+
+    // Checklist
+    async function renderChecklistPanel() {
+      const host = document.getElementById("panel-checklist");
+      if (missionId) {
+        let mission = await getMission(missionId);
+        const items = mission.checklist.filter((i) => i.diagnosticType === typeKey);
+        renderChecklist(host, items,
+          async (id, done) => { mission = await toggleChecklistItem(missionId, id, done); renderChecklistPanel(); },
+          async (id, note) => { await toggleChecklistItem(missionId, id, undefined, note); toast("Note enregistrée.", "success"); }
+        );
+      } else {
+        host.innerHTML = `
+          <div class="card">
+            <p class="text-sm muted">Vous consultez ce module hors mission : la checklist ci-dessous est un modèle informatif (non enregistré). Ouvrez ce module depuis une mission pour cocher et suivre l'avancement réel.</p>
+          </div>
+          <div class="checklist-group">
+            ${def.checklist.map((it) => `<div class="checklist-item"><input type="checkbox" disabled /><div class="checklist-item-label">${escapeHtml(it.category)} — ${escapeHtml(it.label)}</div></div>`).join("")}
+          </div>
+        `;
+      }
+    }
+    renderChecklistPanel();
+
+    // Cadre réglementaire
+    document.getElementById("panel-reglement").innerHTML = `
+      <div class="card">
+        <h3>Base réglementaire indiquée</h3>
+        <p class="text-sm">${def.reglementation.base}
+          <span class="confidence-tag confidence-tag--${def.reglementation.confidence}">${def.reglementation.confidence === "etabli" ? "établi" : "à vérifier"}</span>
+        </p>
+        ${def.reglementation.note ? `<p class="text-xs muted">${def.reglementation.note}</p>` : ""}
+        <p class="text-xs muted mt-16">Pour le texte intégral et sa version consolidée en vigueur, consultez Légifrance ou le site du ministère compétent.</p>
+        <a class="btn btn--secondary btn--sm mt-16" href="/references.html">Voir la base documentaire</a>
+      </div>
+    `;
+  </script>
+</body>
+</html>

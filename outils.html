@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Outils et calculateurs — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Outils</span>
+      <h1>Outils et calculateurs</h1>
+      <p class="muted">Des calculs assistés pour fiabiliser vos mesures sur le terrain.</p>
+    </div>
+
+    <div class="grid grid-tiles">
+      <a class="tile" href="/calculateur-surface.html">
+        <span class="tile-icon" id="i-ruler"></span>
+        <strong>Surface &amp; triangulation</strong>
+        <span class="tile-desc">Carrez / Boutin, pièces sans angle droit</span>
+      </a>
+      <a class="tile" href="/calculateur-unites.html">
+        <span class="tile-icon" id="i-tools"></span>
+        <strong>Convertisseur d'unités</strong>
+        <span class="tile-desc">Longueurs, surfaces</span>
+      </a>
+      <div class="tile" style="opacity:0.55;">
+        <span class="tile-icon" id="i-clock"></span>
+        <strong>Débit de ventilation</strong>
+        <span class="tile-desc">Bientôt disponible</span>
+      </div>
+      <div class="tile" style="opacity:0.55;">
+        <span class="tile-icon" id="i-clock2"></span>
+        <strong>Taux d'humidité</strong>
+        <span class="tile-desc">Bientôt disponible</span>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    if (!mount("outils")) throw new Error("redirect");
+    document.getElementById("i-ruler").innerHTML = icon("ruler");
+    document.getElementById("i-tools").innerHTML = icon("tools");
+    document.getElementById("i-clock").innerHTML = icon("clock");
+    document.getElementById("i-clock2").innerHTML = icon("clock");
+  </script>
+</body>
+</html>

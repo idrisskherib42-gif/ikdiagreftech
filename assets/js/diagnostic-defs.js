@@ -1,0 +1,322 @@
+// Contenu de référence des modules de diagnostic guidés.
+//
+// AVERTISSEMENT DE FIABILITÉ (lu par l'assistant IA et affiché sur chaque module) :
+// Ces fiches sont des AIDE-MÉMOIRE DE TERRAIN rédigés à partir de la
+// réglementation généralement connue à la conception de cet outil. Elles ne
+// remplacent ni la norme applicable, ni la méthode officielle, ni votre
+// certification de diagnostiqueur. La réglementation évolue : toute date,
+// seuil ou référence de texte marqué "à vérifier" doit être confirmé sur une
+// source officielle (Légifrance, ministère, organisme certificateur) avant
+// d'être utilisé pour engager votre responsabilité professionnelle.
+
+export const CONFIDENCE = {
+  ETABLI: "etabli",       // fait stable, bien connu, peu susceptible d'avoir changé
+  A_VERIFIER: "a_verifier", // détail précis (seuil, date, texte) à reconfirmer
+};
+
+export const DIAGNOSTIC_TYPES = {
+  dpe: {
+    key: "dpe",
+    label: "DPE",
+    fullLabel: "Diagnostic de Performance Énergétique",
+    color: "#0f766e",
+    icon: "flame",
+    summary: "Évalue la consommation d'énergie et les émissions de gaz à effet de serre d'un logement, à partir de la méthode de calcul conventionnelle 3CL-DPE 2021.",
+    champDapplication: "Tous bâtiments/parties de bâtiment clos, couverts et chauffés à usage d'habitation, à l'exception : constructions provisoires ≤ 2 ans, bâtiments non chauffés ou chauffés seulement par cheminée à foyer ouvert (sans climatisation), logements utilisés moins de 4 mois par an, monuments historiques classés/inscrits, bâtiments agricoles/artisanaux/industriels à faible besoin énergétique (art. R.134-1 CCH, décret n°2008-461).",
+    validite: {
+      texte: "10 ans pour les DPE réalisés depuis le 1er juillet 2021. Régime transitoire pour les DPE antérieurs : réalisés du 1er janvier 2013 au 31 décembre 2017 → invalides depuis le 1er janvier 2023 ; réalisés du 1er janvier 2018 au 30 juin 2021 → invalides à partir du 1er janvier 2025.",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Régime fixé par le décret n°2020-1610 du 17 décembre 2020 (art. D.134-4-2 CCH), confirmé par le Guide DPE Cerema/DHUP (édition juillet 2024).",
+    },
+    reglementation: {
+      base: "3 arrêtés du 31 mars 2021 (JO n°87 du 13 avril 2021), pris en application des décrets n°2020-1609 et n°2020-1610 du 17 décembre 2020 — définissent le DPE et la méthode de calcul 3CL-DPE 2021 (remplace la méthode 2012 issue de l'arrêté du 17 octobre 2012, elle-même remplaçant la méthode d'origine de 2006)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Correctifs confirmés : arrêté du 25 mars 2024 (JO 20 avril 2024, en vigueur 1er juillet 2024) corrigeant le calcul pour les logements < 40 m² ; arrêté du 13 août 2025 (JO 26 août 2025) abaissant le coefficient de conversion de l'électricité de 2,3 à 1,9 à compter du 1er janvier 2026 (jusqu'à 850 000 logements chauffés à l'électricité sortent du statut de passoire thermique). Depuis le 1er janvier 2026, un DPE collectif est en outre obligatoire pour toutes les copropriétés à usage d'habitation dont le permis de construire est antérieur au 1er janvier 2013 (calendrier échelonné de la loi Climat et Résilience : 2024 pour les plus grandes copropriétés, 2025 pour les moyennes, 2026 pour toutes les autres).",
+    },
+    steps: [
+      { title: "Préparer la visite", description: "Réunir les documents disponibles (factures, plans, diagnostics antérieurs), vérifier le matériel obligatoire du diagnostiqueur et l'accès à tous les logements/locaux techniques.", tips: ["Demander les justificatifs de travaux d'isolation le cas échéant."] },
+      { title: "Relever l'enveloppe du bâtiment", description: "Murs, toiture/combles, plancher bas, menuiseries — en respectant la hiérarchie des sources : mesure directe > observation indirecte > valeur par défaut (jamais une déclaration orale seule).", tips: ["Photographier chaque paroi et menuiserie.", "Noter les ponts thermiques visibles."] },
+      { title: "Relever les systèmes", description: "Chauffage, eau chaude sanitaire, ventilation, refroidissement le cas échéant — même hiérarchie des sources que pour l'enveloppe.", tips: ["Relever la plaque signalétique de chaque générateur.", "Vérifier la date d'installation."] },
+      { title: "Saisir et calculer (méthode 3CL-DPE 2021)", description: "Cinq postes de consommation : chauffage, eau chaude sanitaire, refroidissement, auxiliaires, éclairage.", tips: [] },
+      { title: "Éditer les résultats", description: "Étiquettes énergie et climat (double seuil Cep/GES), fourchette de coût annuel, indicateurs de confort d'été.", tips: [] },
+      { title: "Rédiger les recommandations", description: "Bouquets de travaux hiérarchisés, dont un bouquet permettant de sortir du statut de passoire énergétique si applicable.", tips: [] },
+      { title: "Transmettre à l'ADEME", description: "Envoi du récapitulatif XML à l'observatoire DPE-Audit (obligatoire depuis le 1er juillet 2021), génération du numéro de DPE à 13 caractères.", tips: [] },
+    ],
+    checklist: [
+      { category: "Préparation", label: "Documents et diagnostics antérieurs collectés" },
+      { category: "Préparation", label: "Matériel obligatoire du diagnostiqueur vérifié" },
+      { category: "Enveloppe", label: "Murs : matériau et isolation relevés" },
+      { category: "Enveloppe", label: "Toiture / combles relevés" },
+      { category: "Enveloppe", label: "Plancher bas relevé" },
+      { category: "Enveloppe", label: "Menuiseries et vitrages relevés" },
+      { category: "Systèmes", label: "Système de chauffage identifié" },
+      { category: "Systèmes", label: "Production eau chaude sanitaire identifiée" },
+      { category: "Systèmes", label: "Ventilation identifiée" },
+      { category: "Photos", label: "Façades photographiées" },
+      { category: "Photos", label: "Générateurs photographiés (plaques signalétiques lisibles)" },
+      { category: "Restitution", label: "Étiquettes énergie et climat calculées" },
+      { category: "Restitution", label: "Recommandations de travaux rédigées" },
+      { category: "Restitution", label: "Transmission ADEME effectuée" },
+    ],
+  },
+
+  amiante: {
+    key: "amiante",
+    label: "Amiante",
+    fullLabel: "Repérage amiante avant-vente / DTA",
+    color: "#7c3aed",
+    icon: "shield",
+    summary: "Recherche de matériaux et produits contenant de l'amiante dans les immeubles bâtis dont le permis de construire est antérieur au 1er juillet 1997.",
+    champDapplication: "Vente (parties privatives) et dossier technique amiante/DTA pour les parties communes — immeubles dont le permis de construire a été délivré avant le 1er juillet 1997 (art. R.1334-14-I du Code de la santé publique, issu du décret n°2011-629 du 3 juin 2011).",
+    validite: { texte: "Non fixée explicitement par les textes du Code de la santé publique pour le repérage avant-vente lui-même. En cas de présence liste A dégradée : évaluation périodique tous les 3 ans maximum, travaux obligatoires sous 3 ans si classement 3 (art. R.1334-27/28).", confidence: CONFIDENCE.A_VERIFIER, note: "La règle de durée de validité couramment appliquée en pratique professionnelle relèverait de l'art. R.271-5 du Code de la construction et de l'habitation, non retrouvé dans les documents examinés — à confirmer avant toute communication client." },
+    reglementation: {
+      base: "Décret n°2011-629 du 3 juin 2011 (art. R.1334-14 à R.1334-29 CSP, listes A/B/C en annexe 13-9) ; arrêtés du 12 décembre 2012 (listes A et B), du 26 juin 2013 (liste C), du 21 décembre 2012 (DTA) ; norme NF X46-020 (version août 2017) ; norme XP X46-023 (cartographie du repérage)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Le contenu des listes A/B/C n'a pas changé depuis 2011 ; seules les modalités de repérage/évaluation et de transmission ont évolué (dématérialisation via SI-Amiante depuis l'arrêté du 23 décembre 2020, en vigueur au 1er avril 2021).",
+    },
+    steps: [
+      { title: "Étude documentaire et commande", description: "Récupérer plans, date exacte du permis de construire, DTA/DAPP ou repérages antérieurs auprès du donneur d'ordre.", tips: [] },
+      { title: "Visite de reconnaissance", description: "Vérifier l'accessibilité de tous les locaux et définir précisément le périmètre de la mission (parties privatives, éventuellement parties communes).", tips: [] },
+      { title: "Repérage liste A", description: "Flocages, calorifugeages, faux-plafonds : présence/absence et détermination des zones présentant des similitudes d'ouvrage (ZPSO).", tips: ["Ne jamais percer/gratter un matériau sans procédure adaptée.", "Un jugement personnel sans analyse n'est autorisé que pour la liste B, pas pour la liste A."] },
+      { title: "Repérage liste B", description: "Parois, sols, conduits, façades, toitures, équipements susceptibles de contenir de l'amiante, par ZPSO.", tips: [] },
+      { title: "Sondages, prélèvements et analyse", description: "En cas de doute, prélèvement conservatoire et envoi en laboratoire accrédité COFRAC (méthode MOLP/META).", tips: [] },
+      { title: "Évaluation de l'état de conservation (liste A)", description: "Classement 1/2/3 selon la grille de l'arrêté du 12 décembre 2012 ; le classement 3 déclenche une obligation de travaux sous 3 ans.", tips: [] },
+      { title: "Rapport et plans", description: "Conclusion présence/absence par matériau, état de conservation, plans de repérage (norme XP X46-023), remise contre accusé de réception.", tips: [] },
+    ],
+    checklist: [
+      { category: "Préparation", label: "Date du permis de construire vérifiée" },
+      { category: "Préparation", label: "DTA / DAPP / repérages antérieurs consultés" },
+      { category: "Repérage", label: "Flocages / calorifugeages contrôlés (liste A)" },
+      { category: "Repérage", label: "Faux-plafonds contrôlés (liste A)" },
+      { category: "Repérage", label: "Sols et revêtements contrôlés (liste B)" },
+      { category: "Repérage", label: "Conduits et réseaux contrôlés (liste B)" },
+      { category: "Repérage", label: "Façades et toitures contrôlées (liste B)" },
+      { category: "Photos", label: "Chaque matériau repéré photographié et localisé" },
+      { category: "Restitution", label: "État de conservation (1/2/3) renseigné pour chaque unité liste A" },
+      { category: "Restitution", label: "Plans de repérage joints au rapport" },
+    ],
+  },
+
+  plomb: {
+    key: "plomb",
+    label: "Plomb",
+    fullLabel: "Constat de Risque d'Exposition au Plomb (CREP)",
+    color: "#b45309",
+    icon: "droplet",
+    summary: "Mesure de la concentration en plomb (seuil réglementaire : 1 mg/cm² par fluorescence X) dans les revêtements des logements construits avant 1949.",
+    champDapplication: "Vente et location de logements construits avant le 1er janvier 1949 (norme NF X46-030) ; parties communes d'immeubles d'habitation avant 1949 en cas de travaux affectant substantiellement les revêtements (art. L.1334-8 CSP).",
+    validite: {
+      texte: "Location avec plomb détecté : 6 ans. Location sans plomb / sous les seuils : illimitée. Vente avec plomb détecté au-dessus du seuil (1 mg/cm²) : 1 an. Vente sans plomb ou sous le seuil : illimitée.",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Régimes location établis par l'art. R.1334-11 du Code de la santé publique. Régime vente établi par l'art. R.271-5 du Code de la construction et de l'habitation : la durée d'1 an ne s'applique que si le CREP révèle une concentration de plomb supérieure au seuil réglementaire.",
+    },
+    reglementation: {
+      base: "Arrêté du 19 août 2011 relatif au CREP (JO 1er septembre 2011), qui abroge et remplace l'arrêté du 25 avril 2006 ; norme NF X46-030 (avril 2008) ; Code de la santé publique art. L.1334-5 à L.1334-9 et R.1334-10 à R.1334-13",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Le seuil de 1 mg/cm² (mesure par fluorescence X) ou 1,5 mg/g (analyse chimique en laboratoire, norme NF X46-031) est identique dans les deux arrêtés successifs (2006 et 2011) — ne pas citer l'arrêté de 2006, abrogé.",
+    },
+    steps: [
+      { title: "Préparer l'intervention", description: "Confirmer l'année de construction (< 1949), vérifier l'étalonnage de l'appareil sur une planche témoin proche de 1 mg/cm² avant la mission.", tips: [] },
+      { title: "Identifier locaux, zones et unités de diagnostic", description: "Visite exhaustive : lister les locaux visités/non visités (avec justification), puis les unités de diagnostic (chaque revêtement distinct par substrat/face).", tips: [] },
+      { title: "Mesurer par fluorescence X", description: "1 mesure si positive d'emblée ; 2 si la première est négative ; 3 si les deux premières sont négatives mais qu'une unité similaire du même local est positive.", tips: ["Recontrôler l'étalonnage en fin de mission.", "En cas de support inadapté ou mesure non concluante : prélèvement et analyse en laboratoire (NF X46-031)."] },
+      { title: "Décrire l'état de conservation", description: "Non visible / non dégradé / état d'usage / dégradé, puis classement 0 à 3 en croisant seuil de concentration et dégradation.", tips: [] },
+      { title: "Identifier les facteurs de dégradation du bâti", description: "5 critères : ≥50% d'unités classe 3 dans un local, ≥20% sur l'ensemble, plancher/plafond menaçant ruine, coulures importantes, moisissures/humidité sur plusieurs unités d'une même pièce.", tips: [] },
+      { title: "Rapport et transmission", description: "Récapitulatif chiffré par classe ; si classement 3, rappel des obligations du propriétaire (art. L.1334-9 : information + travaux) ; transmission à l'ARS sous 5 jours ouvrés si facteur de dégradation identifié.", tips: [] },
+    ],
+    checklist: [
+      { category: "Préparation", label: "Année de construction < 1949 confirmée" },
+      { category: "Préparation", label: "Appareil de mesure étalonné (planche témoin)" },
+      { category: "Mesures", label: "Toutes les unités de diagnostic accessibles mesurées" },
+      { category: "Mesures", label: "Huisseries et boiseries mesurées" },
+      { category: "Mesures", label: "Facteurs de dégradation du bâti relevés (5 critères)" },
+      { category: "Photos", label: "Revêtements dégradés photographiés" },
+      { category: "Restitution", label: "Classement 0 à 3 renseigné par unité de diagnostic" },
+      { category: "Restitution", label: "Transmission ARS effectuée si facteur de dégradation (classe 3)" },
+    ],
+  },
+
+  electricite: {
+    key: "electricite",
+    label: "Électricité",
+    fullLabel: "Diagnostic de l'installation intérieure d'électricité",
+    color: "#eab308",
+    icon: "bolt",
+    summary: "État de l'installation électrique intérieure pour les logements dont l'installation a plus de 15 ans (87 points de contrôle, norme FD C 16-600).",
+    champDapplication: "Vente (depuis le 1er juillet 2009) et location (depuis le décret du 11 août 2016, dit décret ALUR) de logements dont l'installation électrique a plus de 15 ans (art. L.134-7 du Code de la construction et de l'habitation).",
+    validite: { texte: "3 ans (vente) / 6 ans (location)", confidence: CONFIDENCE.ETABLI },
+    reglementation: {
+      base: "Art. L.134-7 CCH — norme FD C 16-600 (« État des installations électriques des immeubles à usage d'habitation »), publiée par l'AFNOR en juillet 2017 (souvent citée sous ses anciennes appellations NF C 16-600 ou XP C 16-600)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "87 points de contrôle répartis en 6 domaines : appareil général de commande et de protection, dispositifs différentiels, liaison à la terre, protection des circuits, règles spécifiques aux salles d'eau, matériels vétustes ou inadaptés.",
+    },
+    steps: [
+      { title: "Identifier l'installation", description: "Repérer le tableau principal, l'appareil général de commande et de protection (AGCP), le nombre de circuits.", tips: [] },
+      { title: "Contrôler la protection différentielle", description: "Vérifier la présence et le fonctionnement des dispositifs différentiels (test bouton test).", tips: [] },
+      { title: "Contrôler la liaison équipotentielle et la mise à la terre", description: "Vérifier la continuité et la présence de prises de terre, notamment salle de bain/cuisine.", tips: [] },
+      { title: "Contrôler les points singuliers", description: "Salle de bain (volumes de sécurité), matériels vétustes, fils nus, conducteurs non protégés.", tips: [] },
+      { title: "Rapport", description: "Lister les anomalies par point de contrôle (sur les 87 prévus par la norme) avec cotation du risque.", tips: [] },
+    ],
+    checklist: [
+      { category: "Identification", label: "Tableau électrique et AGCP identifiés" },
+      { category: "Identification", label: "Nombre de circuits recensé" },
+      { category: "Contrôle", label: "Dispositifs différentiels testés" },
+      { category: "Contrôle", label: "Liaison équipotentielle vérifiée" },
+      { category: "Contrôle", label: "Prise de terre vérifiée" },
+      { category: "Contrôle", label: "Volumes de sécurité salle de bain vérifiés" },
+      { category: "Contrôle", label: "Matériels vétustes / fils nus repérés" },
+      { category: "Photos", label: "Tableau électrique photographié" },
+      { category: "Photos", label: "Anomalies photographiées" },
+      { category: "Restitution", label: "Anomalies cotées et rapport rédigé" },
+    ],
+  },
+
+  gaz: {
+    key: "gaz",
+    label: "Gaz",
+    fullLabel: "Diagnostic de l'installation intérieure de gaz",
+    color: "#2563eb",
+    icon: "flame-kindling",
+    summary: "État de l'installation intérieure de gaz pour les logements dont l'installation a plus de 15 ans (vente et location).",
+    champDapplication: "Vente et location de logements dont l'installation gaz a plus de 15 ans ou dont le dernier certificat de conformité date de plus de 15 ans (art. L.134-6 CCH pour la vente ; décret n°2016-1104 du 11 août 2016 pour la location).",
+    validite: {
+      texte: "3 ans (vente) / 6 ans (location)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Durée de 6 ans confirmée explicitement pour la location (décret n°2016-1104 du 11 août 2016, art. 3). Durée de 3 ans pour la vente établie par déduction de l'art. R.134-9 CCH (équivalence avec le certificat de conformité) — cohérente avec toutes les sources mais à recouper directement sur l'art. L.134-6 CCH.",
+    },
+    reglementation: {
+      base: "Norme NF P45-500 (édition juillet 2022, remplace l'édition de janvier 2013) ; décret n°2006-1147 du 14 septembre 2006 (vente) ; décret n°2016-1104 du 11 août 2016 (location) ; arrêté du 23 février 2018 modifié (règles techniques et de sécurité)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "La version 2022 de la norme couvre désormais à la fois la vente ET la location (la version 2013 ne couvrait que la vente).",
+    },
+    steps: [
+      { title: "Identifier l'installation", description: "Repérer le compteur, la tuyauterie fixe, le raccordement des appareils (cuisson, chauffage, eau chaude).", tips: [] },
+      { title: "Contrôler la tuyauterie et le raccordement", description: "Matériaux autorisés, organes de coupure, tubes souples (interdits sauf exception ≤ 6 mm depuis 2020), étanchéité par test de rotation du compteur.", tips: [] },
+      { title: "Contrôler la ventilation", description: "Amenée d'air et sortie d'air, configuration directe/indirecte selon la puissance des appareils.", tips: [] },
+      { title: "Contrôler la combustion", description: "Évacuation des produits de combustion, mesure de CO ambiant (seuil 20 ppm pour appareils type B raccordés, 10 ppm pour type C étanches).", tips: [] },
+      { title: "Classer les anomalies", description: "A1 (à surveiller lors d'une intervention future), A2 (à réparer rapidement), DGI - Danger Grave et Immédiat (coupure immédiate de l'alimentation).", tips: ["En cas de DGI : couper, étiqueter, informer le distributeur de gaz sous 3 mois."] },
+      { title: "Rapport", description: "Rédiger le rapport selon le modèle réglementaire (identification des appareils, anomalies, constatations, conclusion).", tips: [] },
+    ],
+    checklist: [
+      { category: "Identification", label: "Compteur et tuyauterie fixe identifiés" },
+      { category: "Identification", label: "Appareils à gaz recensés" },
+      { category: "Contrôle", label: "Matériaux et organes de coupure de la tuyauterie contrôlés" },
+      { category: "Contrôle", label: "Étanchéité testée (rotation du compteur)" },
+      { category: "Contrôle", label: "Ventilation / amenée d'air vérifiée" },
+      { category: "Contrôle", label: "Mesure de CO ambiant effectuée" },
+      { category: "Contrôle", label: "Évacuation des produits de combustion vérifiée" },
+      { category: "Photos", label: "Compteur et appareils photographiés" },
+      { category: "Restitution", label: "Anomalies classées (A1 / A2 / DGI) et rapport rédigé" },
+    ],
+  },
+
+  termites: {
+    key: "termites",
+    label: "Termites",
+    fullLabel: "État relatif à la présence de termites",
+    color: "#a16207",
+    icon: "bug",
+    summary: "Recherche d'indices de présence de termites, dans les zones délimitées par arrêté préfectoral, en application de la loi n°99-471 du 8 juin 1999.",
+    champDapplication: "Vente de biens situés dans une commune (ou partie de commune) délimitée par arrêté préfectoral comme zone contaminée ou susceptible de l'être (art. L.133-5 et L.133-6 CCH). Distinct des obligations de construction neuve protégée contre les termites (art. R.112-2 à R.112-4 CCH, applicables à tout le département dès qu'un arrêté existe) et de l'obligation de déclaration en mairie en cas de découverte (art. L.133-4 CCH).",
+    validite: {
+      texte: "6 mois (durée usuelle, alignée sur le droit commun du diagnostic immobilier)",
+      confidence: CONFIDENCE.A_VERIFIER,
+      note: "Aucun texte examiné (arrêté du 29 mars 2007, normes NF P03-200/201) ne chiffre explicitement une durée de validité : ils indiquent seulement que le rapport n'a de valeur qu'à la date de la visite. Le chiffre de 6 mois, appliqué universellement en pratique, relèverait de l'art. L.271-4 II du Code de la construction et de l'habitation — à confirmer avant toute communication client.",
+    },
+    reglementation: {
+      base: "Loi n°99-471 du 8 juin 1999 (art. L.133-1 à L.133-6 CCH) ; décret n°2006-591 du 23 mai 2006 et arrêté du 27 juin 2006 modifié (constructions neuves) ; arrêté du 29 mars 2007 modifié (méthode du diagnostic vente) ; normes NF P03-201 (février 2016) et NF P03-200 (mai 2016)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "NF P03-201 est le document normalisé propre au diagnostic vente termites ; NF P03-200 (constat parasitaire, termites + insectes xylophages + champignons) est un service plus large et volontaire, à ne pas confondre avec l'obligation réglementaire de vente.",
+    },
+    steps: [
+      { title: "Vérifier le zonage", description: "Confirmer que la commune (ou partie de commune) est couverte par un arrêté préfectoral termites en vigueur (art. L.133-5 CCH) — consulter la mairie/préfecture, le zonage n'étant pas garanti à jour sur les cartes en ligne.", tips: [] },
+      { title: "Inspecter les abords", description: "Examiner un périmètre de 10 mètres autour de l'emprise du bâtiment (dans la limite de la propriété) : arbres, souches, bois stockés.", tips: [] },
+      { title: "Examiner tous les niveaux", description: "Charpente, huisseries, plinthes, parquets, boiseries, y compris caves, vides sanitaires, sous-sols et garages.", tips: [] },
+      { title: "Sonder les bois en contact avec la maçonnerie", description: "Sondage mécanique non destructif systématique et rapproché sur les points singuliers (passages de gaines, fissures de dalle, discontinuités périphériques).", tips: [] },
+      { title: "Rechercher les indices", description: "Galeries-tunnels ou cordonnets terreux, bois d'aspect feuilleté avec concrétions terreuses, termites vivants ou ailes éparses (essaimage).", tips: [] },
+      { title: "Rapport", description: "Rapport normé (parties visitées/non visitées, résultats par zone, moyens d'investigation) ; rappeler l'obligation légale de déclaration en mairie en cas de présence avérée.", tips: [] },
+    ],
+    checklist: [
+      { category: "Préparation", label: "Zonage préfectoral vérifié auprès de la mairie/préfecture" },
+      { category: "Contrôle", label: "Abords inspectés (10 m autour du bâtiment)" },
+      { category: "Contrôle", label: "Charpente examinée" },
+      { category: "Contrôle", label: "Huisseries et boiseries examinées" },
+      { category: "Contrôle", label: "Sous-sol / vide sanitaire examiné" },
+      { category: "Contrôle", label: "Bois en contact maçonnerie sondés" },
+      { category: "Photos", label: "Indices éventuels photographiés et localisés" },
+      { category: "Restitution", label: "Parties visitées / non visitées renseignées" },
+      { category: "Restitution", label: "Plan de localisation des indices renseigné" },
+    ],
+  },
+
+  erp: {
+    key: "erp",
+    label: "ERP",
+    fullLabel: "État des Risques et Pollutions",
+    color: "#dc2626",
+    icon: "alert-triangle",
+    summary: "Information sur les risques naturels, miniers, technologiques, sismiques, radon et pollutions des sols auxquels un bien est exposé — vente et location.",
+    champDapplication: "Vente ET location de tout bien (bâti ou non) situé en zone couverte par un PPR naturel/minier/technologique (prescrit, anticipé ou approuvé), en zone de sismicité 2 à 5, en commune à potentiel radon de niveau 3, ou en secteur d'information sur les sols (SIS) — art. L.125-5 à L.125-7 et R.125-23 à R.125-27 du Code de l'environnement.",
+    validite: {
+      texte: "Vente : ≤ 6 mois avant le compromis ET avant l'acte définitif (actualisation obligatoire si la situation communale évolue entre les deux). Location : ≤ 6 mois avant la signature du bail, puis valable pour toute la durée du bail et ses reconductions.",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Point souvent mal connu : contrairement à d'autres diagnostics, l'ERP remis pour un bail en cours reste valable au-delà de 6 mois tant que ce bail n'est pas renouvelé.",
+    },
+    reglementation: {
+      base: "Arrêté du 13 juillet 2018 (JO 2 août 2018) créant le formulaire ERP et la rubrique radon, modifiant l'arrêté du 13 octobre 2005 lui-même modifié par l'arrêté du 18 décembre 2017 (ajout des secteurs d'information sur les sols)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Le risque de retrait-gonflement des argiles (RGA) est intégré à Géorisques et donc à l'ERP : une nouvelle carte nationale d'exposition, plus large (arrêté du 9 janvier 2026), s'applique aux compromis de vente et contrats de construction conclus depuis le 1er juillet 2026 — 55% du territoire métropolitain est désormais en exposition moyenne ou forte (contre 48% en 2020). Le bruit des aérodromes (PEB), lui, n'est PAS une rubrique de l'ERP : c'est un document Cerfa distinct, l'État des Nuisances Sonores Aériennes (ENSA), obligatoire depuis le 1er juin 2020 pour les biens en zone de plan d'exposition au bruit (décret n°2022-750 du 29 avril 2022, modifié par le décret n°2024-531 du 10 juin 2024).",
+    },
+    steps: [
+      { title: "Localiser précisément le bien", description: "Adresse exacte, code INSEE de la commune et référence(s) cadastrale(s).", tips: [] },
+      { title: "Identifier l'arrêté préfectoral applicable", description: "Retrouver le numéro et la date de l'arrêté préfectoral en vigueur pour la commune concernée.", tips: [] },
+      { title: "Interroger Géorisques et la fiche communale", description: "Vérifier PPRN/PPRM/PPRT (et leur statut : prescrit / anticipé / approuvé), zone de sismicité, potentiel radon, secteur d'information sur les sols, et exposition au retrait-gonflement des argiles (carte nationale mise à jour au 1er juillet 2026).", tips: ["Ne jamais deviner un zonage : toujours consulter la base officielle Géorisques à la date de la mission.", "Si le bien est en zone de plan d'exposition au bruit (PEB) d'un aérodrome, un document distinct (l'État des Nuisances Sonores Aériennes, ENSA) doit aussi être établi — ce n'est pas une rubrique de l'ERP."] },
+      { title: "Compléter le formulaire officiel", description: "Reporter les statuts, dates, types de risques et prescriptions de travaux (réalisées ou non) dans le formulaire Cerfa en vigueur.", tips: [] },
+      { title: "Renseigner les sinistres indemnisés", description: "Mentionner les catastrophes naturelles, minières ou technologiques ayant donné lieu à indemnisation, si applicable.", tips: [] },
+      { title: "Joindre les annexes et faire signer", description: "Extraits de cartes de zonage obligatoires ; faire dater et signer par les deux parties, en respectant le délai de 6 mois selon vente/location.", tips: [] },
+    ],
+    checklist: [
+      { category: "Localisation", label: "Adresse, code INSEE et parcelle cadastrale confirmés" },
+      { category: "Zonages", label: "Arrêté préfectoral applicable identifié" },
+      { category: "Zonages", label: "Zone sismique vérifiée (Géorisques)" },
+      { category: "Zonages", label: "Potentiel radon vérifié (Géorisques)" },
+      { category: "Zonages", label: "PPR naturels/miniers/technologiques vérifiés" },
+      { category: "Zonages", label: "Secteur d'information sur les sols (SIS) vérifié" },
+      { category: "Restitution", label: "Formulaire officiel complété" },
+      { category: "Restitution", label: "Sinistres indemnisés renseignés" },
+      { category: "Restitution", label: "Annexes cartographiques jointes" },
+    ],
+  },
+
+  mesurage: {
+    key: "mesurage",
+    label: "Mesurage",
+    fullLabel: "Mesurage Loi Carrez / Loi Boutin",
+    color: "#0e7490",
+    icon: "ruler",
+    summary: "Calcul de la superficie privative (Carrez, copropriété) ou de la surface habitable (Boutin, location) d'un logement.",
+    champDapplication: "Carrez : vente d'un lot de copropriété (ou fraction de lot) de plus de 8 m² (art. 46 loi n°65-557 rétabli par la loi n°96-1107, art. 4-2 du décret n°97-532) — exclut maisons individuelles hors copropriété, donations, VEFA, caves/garages/parkings isolés. Boutin : location non meublée (résidence principale, loi n°89-462) — ne concerne pas les locations meublées ni saisonnières.",
+    validite: { texte: "Illimitée sauf travaux modifiant la surface", confidence: CONFIDENCE.ETABLI },
+    reglementation: {
+      base: "Loi Carrez n°96-1107 du 18 décembre 1996 + décret d'application n°97-532 du 23 mai 1997 (art. 4-1 à 4-3) — Loi Boutin n°2009-323 du 25 mars 2009, article 78 (surface habitable, art. R.111-2 CCH)",
+      confidence: CONFIDENCE.ETABLI,
+      note: "Textes anciens et stables, peu susceptibles d'avoir changé. Les exclusions Boutin sont plus larges que Carrez (combles non aménagés, vérandas, volumes très vitrés...) : la surface Carrez d'un bien peut donc être supérieure à sa surface Boutin.",
+    },
+    steps: [
+      { title: "Repérer les exclusions", description: "Décret 97-532 (exhaustif pour Carrez) : murs et cloisons, marches et cages d'escalier, gaines techniques, embrasures de portes/fenêtres, parties de hauteur sous plafond < 1,80 m. Boutin exclut en plus combles non aménagés, caves, garages, terrasses, vérandas et volumes à parois très vitrées.", tips: ["Un placard suit la règle générale de hauteur (< 1,80 m exclu) ; un placard intégré dans une embrasure/mur porteur est traité comme l'embrasure elle-même.", "Une mezzanine « en dur » avec escalier fixe est généralement incluse ; une mezzanine légère démontable est généralement exclue — cas litigieux, à documenter avec photos."] },
+      { title: "Mesurer chaque pièce", description: "Décomposer les pièces non rectangulaires en triangles pour calculer précisément leur surface (formule de Héron — voir calculateur de triangulation).", tips: ["Utiliser un télémètre laser pour limiter les erreurs.", "Mesurer les diagonales pour vérifier l'équerrage."] },
+      { title: "Additionner et vérifier", description: "Faire la somme des surfaces retenues et contrôler la cohérence avec les plans existants.", tips: [] },
+      { title: "Rapport", description: "Détailler le calcul pièce par pièce dans l'attestation. Un écart de métrage supérieur à 1/20e (5%) au détriment de l'acquéreur expose à une action en diminution du prix dans l'année suivant l'acte (Carrez uniquement).", tips: [] },
+    ],
+    checklist: [
+      { category: "Préparation", label: "Type de mesurage confirmé (Carrez ou Boutin)" },
+      { category: "Mesures", label: "Toutes les pièces mesurées" },
+      { category: "Mesures", label: "Zones à hauteur réduite (< 1,80 m) identifiées et exclues" },
+      { category: "Mesures", label: "Cas particuliers documentés (placards, mezzanines, vérandas)" },
+      { category: "Mesures", label: "Pièces non rectangulaires décomposées en triangles" },
+      { category: "Restitution", label: "Détail du calcul pièce par pièce rédigé" },
+      { category: "Restitution", label: "Surface totale vérifiée par recoupement" },
+    ],
+  },
+};
+
+export const DIAGNOSTIC_ORDER = ["dpe", "amiante", "plomb", "electricite", "gaz", "termites", "erp", "mesurage"];

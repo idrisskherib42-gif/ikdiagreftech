@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Diagnostics — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Modules guidés</span>
+      <h1>Diagnostics</h1>
+      <p class="muted">Fiches méthode pas à pas pour chaque type de diagnostic. Ouvrez-les depuis une mission pour suivre l'avancement, ou ici en consultation libre.</p>
+    </div>
+    <div id="disclaimer-host"></div>
+    <div class="grid grid-tiles" id="diag-grid"></div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { DIAGNOSTIC_TYPES, DIAGNOSTIC_ORDER } from "/assets/js/diagnostic-defs.js";
+
+    if (!mount("diagnostics")) throw new Error("redirect");
+
+    document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
+      "Ces fiches sont des aide-mémoire de terrain. Elles ne remplacent ni la norme, ni la méthode officielle, ni votre certification. Vérifiez toute donnée marquée « à vérifier » sur une source officielle."
+    );
+
+    document.getElementById("diag-grid").innerHTML = DIAGNOSTIC_ORDER.map((key) => {
+      const d = DIAGNOSTIC_TYPES[key];
+      return `
+        <a class="tile" href="/diagnostics/module.html?type=${key}">
+          <span class="tile-icon" style="background:${d.color}22;color:${d.color};">${icon(d.icon)}</span>
+          <strong>${d.label}</strong>
+          <span class="tile-desc">${d.fullLabel}</span>
+        </a>
+      `;
+    }).join("");
+  </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Assistant terrain — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content page-content--narrow" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Sur place</span>
+      <h1>Assistant terrain</h1>
+    </div>
+
+    <div class="field" id="mission-picker">
+      <label for="mission-select">Mission active</label>
+      <select id="mission-select"></select>
+    </div>
+
+    <div id="terrain-body"></div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { listMissions, missionProgress, toggleChecklistItem, addFieldNote } from "/assets/js/missions.js";
+    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
+    import { renderChecklist } from "/assets/js/checklist-widget.js";
+    import { escapeHtml, formatDate, toast } from "/assets/js/util.js";
+
+    if (!mount("assistant-terrain")) throw new Error("redirect");
+
+    const missions = await listMissions();
+    const select = document.getElementById("mission-select");
+    const body = document.getElementById("terrain-body");
+
+    if (!missions.length) {
+      document.getElementById("mission-picker").hidden = true;
+      body.innerHTML = `<div class="card empty-state">${icon("field", "icon-lg")}<p>Aucune mission active. Créez une mission pour démarrer l'assistant terrain.</p><a class="btn btn--sm" href="/mission-nouvelle.html">Créer une mission</a></div>`;
+      throw new Error("no missions");
+    }
+    if (missions.length === 1) document.getElementById("mission-picker").hidden = true;
+
+    select.innerHTML = missions.map((m) => `<option value="${m.id}">${escapeHtml(m.title)}</option>`).join("");
+    let currentId = missions[0].id;
+    select.value = currentId;
+    select.addEventListener("change", () => { currentId = select.value; render(); });
+
+    const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function nextAction(mission) {
+      const remaining = mission.checklist.find((i) => !i.done);
+      if (!remaining) return null;
+      const def = DIAGNOSTIC_TYPES[remaining.diagnosticType];
+      return { label: remaining.label, defLabel: def?.label || remaining.diagnosticType, href: `/diagnostics/module.html?type=${remaining.diagnosticType}&mission=${mission.id}` };
+    }
+
+    async function render() {
+      const mission = missions.find((m) => m.id === currentId);
+      const pct = missionProgress(mission);
+      const next = nextAction(mission);
+
+      body.innerHTML = `
+        <div class="mission-progress-hero">
+          <div class="progress-pct">${pct}%</div>
+          <div class="progress-label">${escapeHtml(mission.title)}</div>
+          <div class="progress-bar mt-16"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+          ${next ? `
+            <a class="next-action-card" href="${next.href}" style="color:inherit;text-decoration:none;">
+              ${icon("arrowRight")}
+              <span><strong>${escapeHtml(next.defLabel)} — ${escapeHtml(next.label)}</strong><span>Prochaine action</span></span>
+            </a>
+          ` : `
+            <div class="next-action-card">${icon("check")}<span><strong>Checklist complète</strong><span>Rien à faire de plus sur place</span></span></div>
+          `}
+        </div>
+
+        <p class="section-label">Ouvrir un module</p>
+        <div class="btn-row mb-0" id="module-chips" style="margin-bottom:var(--sp-6);"></div>
+
+        <details class="card">
+          <summary style="cursor:pointer;font-weight:700;">${icon("checklist", "icon-sm")} Checklist complète</summary>
+          <div class="mt-16" id="terrain-checklist"></div>
+        </details>
+
+        <details class="card">
+          <summary style="cursor:pointer;font-weight:700;">${icon("mic", "icon-sm")} Note vocale / texte rapide</summary>
+          <div class="mt-16">
+            <div class="flex gap-8">
+              <textarea id="quick-note" rows="2" placeholder="Ex. Compteur électrique en sous-sol, accès par la cour."></textarea>
+              <button class="icon-btn" id="dictate-note" title="${SpeechRecognitionImpl ? "Dicter la note" : "Dictée non supportée"}" ${SpeechRecognitionImpl ? "" : "disabled"}>${icon("mic")}</button>
+            </div>
+            <button class="btn btn--sm mt-16" id="save-note">Ajouter la note</button>
+            <div id="notes-list" class="mt-16"></div>
+          </div>
+        </details>
+
+        <a class="more-link" href="/mission-detail.html?id=${mission.id}">Ouvrir la fiche mission complète</a>
+      `;
+
+      document.getElementById("module-chips").innerHTML = mission.diagnosticTypes.map((key) => {
+        const d = DIAGNOSTIC_TYPES[key];
+        return `<a class="tag" style="padding:10px 16px;font-size:14px;border:1px solid var(--border-strong);" href="/diagnostics/module.html?type=${key}&mission=${mission.id}">${d.label}</a>`;
+      }).join("") || `<p class="muted text-sm">Aucun diagnostic associé.</p>`;
+
+      function renderNotes() {
+        const notes = mission.fieldNotes || [];
+        document.getElementById("notes-list").innerHTML = notes.length
+          ? notes.slice().reverse().map((n) => `<div class="text-sm" style="padding:6px 0;border-bottom:1px solid var(--border);"><span class="muted text-xs">${formatDate(n.createdAt)}</span><br/>${escapeHtml(n.text)}</div>`).join("")
+          : `<p class="muted text-sm">Aucune note pour l'instant.</p>`;
+      }
+      renderNotes();
+
+      document.getElementById("save-note").addEventListener("click", async () => {
+        const textarea = document.getElementById("quick-note");
+        if (!textarea.value.trim()) return;
+        const updated = await addFieldNote(mission.id, textarea.value.trim());
+        mission.fieldNotes = updated.fieldNotes;
+        textarea.value = "";
+        renderNotes();
+        toast("Note ajoutée.", "success");
+      });
+
+      if (SpeechRecognitionImpl) {
+        document.getElementById("dictate-note").addEventListener("click", () => {
+          const recognizer = new SpeechRecognitionImpl();
+          recognizer.lang = "fr-FR";
+          recognizer.interimResults = false;
+          const textarea = document.getElementById("quick-note");
+          recognizer.onresult = (event) => {
+            const text = event.results[0][0].transcript;
+            textarea.value = textarea.value ? `${textarea.value} ${text}` : text;
+          };
+          recognizer.start();
+        });
+      }
+
+      renderChecklist(document.getElementById("terrain-checklist"), mission.checklist,
+        async (id, done) => { const updated = await toggleChecklistItem(mission.id, id, done); mission.checklist = updated.checklist; render(); },
+        async (id, note) => { await toggleChecklistItem(mission.id, id, undefined, note); toast("Note enregistrée.", "success"); }
+      );
+    }
+
+    render();
+  </script>
+</body>
+</html>

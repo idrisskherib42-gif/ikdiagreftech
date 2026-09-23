@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Assistant IA — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content page-content--narrow" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Assistant IA</span>
+      <h1>Assistant réglementaire</h1>
+      <p class="muted">Recherche dans la base documentaire et la veille de l'application. Réponses sourcées et datées ; signale clairement quand une information n'est pas certaine.</p>
+    </div>
+    <div id="disclaimer-host"></div>
+
+    <div class="chat-log" id="chat-log"></div>
+
+    <div class="chat-input-row">
+      <textarea id="chat-input" rows="2" placeholder="Ex. Quelle est la durée de validité du diagnostic électrique ?"></textarea>
+      <button class="btn" id="send-btn">Envoyer</button>
+    </div>
+    <div class="filter-row mt-16" id="suggestions"></div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { answerQuestion } from "/assets/js/assistant.js";
+    import { escapeHtml, formatDate } from "/assets/js/util.js";
+
+    if (!mount("assistant-ia")) throw new Error("redirect");
+
+    document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
+      "Cet assistant recherche dans le contenu déjà présent dans IK DIAG (base documentaire, veille, fiches méthode) : ce n'est pas un modèle générateur de texte libre. Il indique toujours ses sources et signale quand l'information est incertaine."
+    );
+
+    const log = document.getElementById("chat-log");
+    const SUGGESTIONS = [
+      "Durée de validité du DPE",
+      "Seuil plomb CREP",
+      "Validité diagnostic électrique",
+      "Zonage termites",
+      "Exclusions loi Carrez",
+    ];
+    document.getElementById("suggestions").innerHTML = SUGGESTIONS.map((s) => `<button class="filter-chip" data-q="${escapeHtml(s)}">${s}</button>`).join("");
+    document.querySelectorAll("[data-q]").forEach((btn) => btn.addEventListener("click", () => { ask(btn.dataset.q); }));
+
+    function addMessage(role, html) {
+      const node = document.createElement("div");
+      node.className = `chat-msg chat-msg--${role}`;
+      node.innerHTML = html;
+      log.appendChild(node);
+      node.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+
+    function ask(question) {
+      if (!question.trim()) return;
+      addMessage("user", escapeHtml(question));
+      const result = answerQuestion(question);
+
+      if (!result.matches.length) {
+        addMessage("bot", `<p>${escapeHtml(result.message)}</p>`);
+        return;
+      }
+
+      const top = result.matches[0];
+      const intro = `D'après les sources disponibles dans IK DIAG, voici ce que je trouve sur <strong>${escapeHtml(top.title)}</strong> :`;
+      const sourcesHtml = result.matches.map((m) => `
+        <div class="chat-source">
+          ${icon("book", "icon-sm")}
+          <span>
+            <strong>${escapeHtml(m.title)}</strong> — ${escapeHtml(m.source)}
+            ${m.date ? ` · ${m.dateLabel} : ${formatDate(m.date)}` : ""}
+            <br/><span class="confidence-tag confidence-tag--${m.confidence}" style="margin-top:4px;display:inline-flex;">${m.confidence === "etabli" ? "Information établie" : "À vérifier sur source officielle"}</span>
+            ${m.confidenceNote ? `<br/><em>${escapeHtml(m.confidenceNote)}</em>` : ""}
+            <br/><a href="${m.href}" style="color:var(--primary-dark);font-weight:600;">Ouvrir dans l'application →</a>
+          </span>
+        </div>
+      `).join("");
+
+      addMessage("bot", `<p>${intro}</p><div class="chat-sources">${sourcesHtml}</div>`);
+    }
+
+    document.getElementById("send-btn").addEventListener("click", () => {
+      const input = document.getElementById("chat-input");
+      ask(input.value);
+      input.value = "";
+    });
+    document.getElementById("chat-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById("send-btn").click();
+      }
+    });
+
+    addMessage("bot", "Bonjour, je peux vous aider à retrouver une information réglementaire déjà présente dans IK DIAG (base documentaire et veille). Posez votre question ou choisissez une suggestion ci-dessous.");
+  </script>
+</body>
+</html>

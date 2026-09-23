@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Checklists — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Contrôle qualité</span>
+      <h1>Checklists</h1>
+      <p class="muted">Avancement des points de contrôle, mission par mission.</p>
+    </div>
+    <div id="checklists-host"></div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { listMissions, missionProgress } from "/assets/js/missions.js";
+    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
+    import { escapeHtml } from "/assets/js/util.js";
+
+    if (!mount("checklists")) throw new Error("redirect");
+
+    const missions = await listMissions();
+    const host = document.getElementById("checklists-host");
+
+    if (!missions.length) {
+      host.innerHTML = `<div class="card empty-state">${icon("checklist", "icon-lg")}<p>Aucune mission avec checklist pour l'instant.</p><a class="btn btn--sm" href="/mission-nouvelle.html">Créer une mission</a></div>`;
+    } else {
+      host.innerHTML = missions.map((m) => {
+        const remaining = m.checklist.filter((i) => !i.done);
+        return `
+          <a class="card" href="/mission-detail.html?id=${m.id}&tab=checklist" style="display:block;margin-bottom:12px;">
+            <div class="flex-between">
+              <div>
+                <strong>${escapeHtml(m.title)}</strong>
+                <div class="tag-row" style="margin-top:6px;">${m.diagnosticTypes.map((t) => `<span class="tag">${DIAGNOSTIC_TYPES[t]?.label || t}</span>`).join("")}</div>
+              </div>
+              <span class="badge badge--neutral">${missionProgress(m)}%</span>
+            </div>
+            <div class="progress-bar mt-16"><div class="progress-bar-fill" style="width:${missionProgress(m)}%"></div></div>
+            <span class="text-xs muted">${remaining.length} point(s) restant(s) sur ${m.checklist.length}</span>
+          </a>
+        `;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

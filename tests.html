@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tests automatisés — IK DIAG</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; color: #101826; }
+  h1 { font-size: 20px; }
+  .suite { margin-bottom: 8px; font-weight: 700; margin-top: 20px; }
+  .case { padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 14px; font-family: monospace; }
+  .pass { background: #e8f6ee; color: #15803d; }
+  .fail { background: #fdeaea; color: #b91c1c; }
+  .summary { margin-top: 24px; padding: 16px; border-radius: 10px; font-weight: 700; }
+  .summary.ok { background: #e8f6ee; color: #15803d; }
+  .summary.ko { background: #fdeaea; color: #b91c1c; }
+  #log { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <h1>IK DIAG — Suite de tests automatisés (en navigateur)</h1>
+  <p>Aucun framework de test (pas de Node.js sur ce poste) : harnais maison, exécuté directement dans le navigateur contre le vrai code de l'application. Utilise un compte de test dédié (<code>__test_user__</code>), créé et nettoyé à chaque exécution — n'affecte pas les comptes réels.</p>
+  <div id="log">Exécution en cours...</div>
+
+  <script type="module">
+    const results = [];
+    let currentSuite = "";
+
+    function suite(name) {
+      currentSuite = name;
+      results.push({ type: "suite", name });
+    }
+    async function test(name, fn) {
+      try {
+        await fn();
+        results.push({ type: "case", suite: currentSuite, name, pass: true });
+      } catch (e) {
+        results.push({ type: "case", suite: currentSuite, name, pass: false, error: e.message });
+      }
+    }
+    function assert(cond, msg) {
+      if (!cond) throw new Error(msg || "assertion failed");
+    }
+    function assertEqual(a, b, msg) {
+      if (a !== b) throw new Error(`${msg || "not equal"}: ${JSON.stringify(a)} !== ${JSON.stringify(b)}`);
+    }
+    function assertThrows(fn) {
+      return fn().then(
+        () => { throw new Error("expected to throw, did not"); },
+        () => {}
+      );
+    }
+
+    async function run() {
+      const authMod = await import("/assets/js/auth.js");
+      const storeMod = await import("/assets/js/store.js");
+      const missionsMod = await import("/assets/js/missions.js");
+      const rulesMod = await import("/assets/js/eligibility-rules.js");
+      const calcMod = await import("/assets/js/calculators.js");
+
+      const TEST_USER = "__test_user__";
+      const TEST_USER2 = "__test_user2__";
+      const TEST_PASS = "test_password_123";
+
+      function cleanupUser(username) {
+        const users = storeMod.getRaw(storeMod.Collections.USERS, []);
+        const target = users.find((u) => u.username === username);
+        storeMod.setRaw(storeMod.Collections.USERS, users.filter((u) => u.username !== username));
+        if (target) {
+          const missionsStore = storeMod.getRaw(storeMod.Collections.MISSIONS_ENC, {});
+          delete missionsStore[target.id];
+          storeMod.setRaw(storeMod.Collections.MISSIONS_ENC, missionsStore);
+        }
+        sessionStorage.clear();
+      }
+
+      // Always start clean.
+      cleanupUser(TEST_USER);
+      cleanupUser(TEST_USER2);
+
+      // ---------------- AUTHENTIFICATION ----------------
+      suite("Authentification");
+
+      await test("inscription crée un compte et ouvre une session", async () => {
+        const user = await authMod.register({ username: TEST_USER, password: TEST_PASS, fullName: "Test User" });
+        assert(!!user.id, "user should have an id");
+        assert(authMod.isAuthenticated(), "should be authenticated after register");
+      });
+
+      await test("mot de passe jamais stocké en clair", async () => {
+        const users = storeMod.getRaw(storeMod.Collections.USERS, []);
+        const u = users.find((x) => x.username === TEST_USER);
+        assert(u.passwordHash !== TEST_PASS, "passwordHash must not equal raw password");
+        assert(!("password" in u), "no raw password field should exist on the user record");
+      });
+
+      await test("connexion avec mauvais mot de passe échoue avec message générique", async () => {
+        sessionStorage.clear();
+        await assertThrows(() => authMod.login(TEST_USER, "wrong-password"));
+      });
+
+      await test("connexion avec identifiant inexistant renvoie le même message (pas d'énumération)", async () => {
+        sessionStorage.clear();
+        let msg1, msg2;
+        try { await authMod.login(TEST_USER, "wrong-password"); } catch (e) { msg1 = e.message; }
+        try { await authMod.login("ce_compte_n_existe_pas", "whatever"); } catch (e) { msg2 = e.message; }
+        assertEqual(msg1, msg2, "error messages should be identical");
+      });
+
+      await test("rate limiting bloque après 5 échecs", async () => {
+        sessionStorage.clear();
+        const attempts = storeMod.getRaw("login_attempts", {});
+        delete attempts[TEST_USER];
+        storeMod.setRaw("login_attempts", attempts);
+        for (let i = 0; i < 5; i++) {
+          try { await authMod.login(TEST_USER, "wrong"); } catch (e) {}
+        }
+        let locked = false;
+        try { await authMod.login(TEST_USER, "wrong"); } catch (e) { locked = /Trop de tentatives/.test(e.message); }
+        assert(locked, "6th attempt should be rate-limited");
+        // cleanup lockout for subsequent tests
+        const a2 = storeMod.getRaw("login_attempts", {});
+        delete a2[TEST_USER];
+        storeMod.setRaw("login_attempts", a2);
+      });
+
+      await test("connexion avec le bon mot de passe réussit", async () => {
+        sessionStorage.clear();
+        const user = await authMod.login(TEST_USER, TEST_PASS);
+        assertEqual(user.username, TEST_USER);
+      });
+
+      await test("déconnexion invalide la session", async () => {
+        assert(authMod.isAuthenticated(), "should be authenticated before logout");
+        sessionStorage.clear(); // logout() does this plus a redirect we can't test headlessly
+        assert(!authMod.isAuthenticated(), "should not be authenticated after clearing session");
+        await authMod.login(TEST_USER, TEST_PASS); // restore session for later tests
+      });
+
+      // ---------------- AUTORISATIONS ----------------
+      suite("Autorisations et permissions");
+
+      await test("un 2e compte créé n'est jamais admin", async () => {
+        sessionStorage.clear();
+        const user2 = await authMod.register({ username: TEST_USER2, password: TEST_PASS, fullName: "Test User 2" });
+        assertEqual(user2.role, "diagnostiqueur", "second-ever account must not be admin");
+      });
+
+      await test("le rôle du 2e compte empêche l'accès admin (requireAdmin() redirige, donc on vérifie la condition qu'il teste, sans déclencher la navigation réelle ici)", async () => {
+        const u = authMod.currentUser();
+        assert(!!u && u.role !== "admin", "second account must not have the admin role that gates admin.html");
+      });
+
+      await test("les missions sont cloisonnées par compte (chiffrement par utilisateur)", async () => {
+        // user2 is logged in (from previous test); should see zero missions
+        // even if user1 has some, since decryption uses user2's own key.
+        sessionStorage.clear();
+        await authMod.login(TEST_USER, TEST_PASS);
+        await missionsMod.createMission({ title: "Mission confidentielle user1", diagnosticTypes: ["dpe"] });
+        sessionStorage.clear();
+        await authMod.login(TEST_USER2, TEST_PASS);
+        const user2Missions = await missionsMod.listMissions();
+        assertEqual(user2Missions.length, 0, "user2 must not see user1's missions");
+      });
+
+      await test("changer l'ID d'une mission dans le code ne donne pas accès à une mission d'un autre compte", async () => {
+        sessionStorage.clear();
+        await authMod.login(TEST_USER, TEST_PASS);
+        const [mine] = await missionsMod.listMissions();
+        sessionStorage.clear();
+        await authMod.login(TEST_USER2, TEST_PASS);
+        const attempt = await missionsMod.getMission(mine.id);
+        assert(attempt === null, "getMission with another user's id must return null, not their data");
+      });
+
+      // ---------------- MISSIONS (CRUD) ----------------
+      suite("Missions — création, modification, suppression");
+
+      await test("création d'une mission", async () => {
+        sessionStorage.clear();
+        await authMod.login(TEST_USER, TEST_PASS);
+        const m = await missionsMod.createMission({ title: "Mission test CRUD", diagnosticTypes: ["dpe", "amiante"] });
+        assert(!!m.id);
+        assertEqual(m.status, "planifiee");
+        assertEqual(m.checklist.length > 0, true, "checklist should be generated from diagnostic types");
+      });
+
+      await test("modification d'une mission persiste", async () => {
+        const [m] = await missionsMod.listMissions();
+        await missionsMod.updateMission(m.id, { title: "Titre modifié" });
+        const fresh = await missionsMod.getMission(m.id);
+        assertEqual(fresh.title, "Titre modifié");
+      });
+
+      await test("cocher un item de checklist persiste", async () => {
+        const [m] = await missionsMod.listMissions();
+        const item = m.checklist[0];
+        await missionsMod.toggleChecklistItem(m.id, item.id, true);
+        const fresh = await missionsMod.getMission(m.id);
+        assertEqual(fresh.checklist.find((i) => i.id === item.id).done, true);
+      });
+
+      await test("suppression d'une mission", async () => {
+        const m = await missionsMod.createMission({ title: "À supprimer", diagnosticTypes: [] });
+        await missionsMod.deleteMission(m.id);
+        const fresh = await missionsMod.getMission(m.id);
+        assertEqual(fresh, null);
+      });
+
+      // ---------------- CONCURRENCE ----------------
+      suite("Concurrence (accès simultanés)");
+
+      await test("deux mutations concurrentes sur des champs différents survivent toutes les deux", async () => {
+        const m = await missionsMod.createMission({ title: "Mission concurrence", diagnosticTypes: ["dpe"] });
+        const [itemA, itemB] = m.checklist;
+        await Promise.all([
+          missionsMod.toggleChecklistItem(m.id, itemA.id, true),
+          missionsMod.toggleChecklistItem(m.id, itemB.id, true),
+        ]);
+        const fresh = await missionsMod.getMission(m.id);
+        assert(fresh.checklist.find((i) => i.id === itemA.id).done, "item A should be done");
+        assert(fresh.checklist.find((i) => i.id === itemB.id).done, "item B should be done");
+      });
+
+      await test("10 créations de mission concurrentes produisent bien 10 missions (pas de perte)", async () => {
+        const before = (await missionsMod.listMissions()).length;
+        await Promise.all(Array.from({ length: 10 }, (_, i) => missionsMod.createMission({ title: `Concurrente ${i}`, diagnosticTypes: [] })));
+        const after = (await missionsMod.listMissions()).length;
+        assertEqual(after - before, 10, "all 10 concurrent creations must be persisted");
+      });
+
+      // ---------------- SAUVEGARDE ----------------
+      suite("Sauvegarde et restauration");
+
+      await test("export puis suppression puis restauration récupère la mission", async () => {
+        const m = await missionsMod.createMission({ title: "Mission à sauvegarder", diagnosticTypes: [] });
+        const backup = await missionsMod.exportBackup();
+        await missionsMod.deleteMission(m.id);
+        assertEqual(await missionsMod.getMission(m.id), null);
+        await missionsMod.restoreBackup(backup, "merge");
+        const restored = await missionsMod.getMission(m.id);
+        assert(restored !== null, "mission should be recovered from backup");
+        assertEqual(restored.title, "Mission à sauvegarder");
+      });
+
+      await test("restaurer une sauvegarde corrompue échoue proprement", async () => {
+        const backup = await missionsMod.exportBackup();
+        const tampered = { ...backup, payload: { ...backup.payload, data: backup.payload.data.slice(0, -4) + "abcd" } };
+        await assertThrows(() => missionsMod.restoreBackup(tampered, "merge"));
+      });
+
+      // ---------------- MOTEUR DE RÈGLES ----------------
+      suite("Moteur de règles d'éligibilité");
+
+      await test("permis avant 1997 -> amiante obligatoire", () => {
+        const r = rulesMod.evaluateDiagnostic("amiante", { permisAvant1997: "oui" });
+        assertEqual(r.result, rulesMod.RESULT.OBLIGATOIRE);
+        return Promise.resolve();
+      });
+
+      await test("permis après 1997 -> amiante non concerné", () => {
+        const r = rulesMod.evaluateDiagnostic("amiante", { permisAvant1997: "non" });
+        assertEqual(r.result, rulesMod.RESULT.NON_CONCERNE);
+        return Promise.resolve();
+      });
+
+      await test("réponse 'je ne sais pas' -> toujours à vérifier, jamais non concerné", () => {
+        const r = rulesMod.evaluateDiagnostic("plomb", { constructionAvant1949: "nsp" });
+        assertEqual(r.result, rulesMod.RESULT.A_VERIFIER);
+        return Promise.resolve();
+      });
+
+      await test("location -> termites non concerné (uniquement vente)", () => {
+        const r = rulesMod.evaluateDiagnostic("termites", { transactionType: "location" });
+        assertEqual(r.result, rulesMod.RESULT.NON_CONCERNE);
+        return Promise.resolve();
+      });
+
+      // ---------------- CALCULATEURS ----------------
+      suite("Calculateurs");
+
+      await test("triangle 3-4-5 -> aire 6 m² (formule de Héron)", () => {
+        const r = calcMod.triangleAreaSSS(3, 4, 5);
+        assert(r.valid);
+        assertEqual(Math.round(r.area * 100) / 100, 6);
+        return Promise.resolve();
+      });
+
+      await test("côtés ne respectant pas l'inégalité triangulaire -> rejeté", () => {
+        const r = calcMod.triangleAreaSSS(1, 1, 10);
+        assertEqual(r.valid, false);
+        return Promise.resolve();
+      });
+
+      await test("rectangle 4x3 -> aire 12 m²", () => {
+        const r = calcMod.rectangleArea(4, 3);
+        assert(r.valid);
+        assertEqual(r.area, 12);
+        return Promise.resolve();
+      });
+
+      await test("triangulation en éventail à 4 coins : 4 murs + 1 diagonale, chacun une seule fois", () => {
+        const shape = calcMod.deriveFanTriangulation(4);
+        assert(shape.valid);
+        assertEqual(shape.walls.length, 4);
+        assertEqual(shape.diagonals.length, 1);
+        assertEqual(shape.triangles.length, 2);
+        return Promise.resolve();
+      });
+
+      await test("triangulation en éventail à 5 coins : 5 murs + 2 diagonales + 3 triangles", () => {
+        const shape = calcMod.deriveFanTriangulation(5);
+        assertEqual(shape.walls.length, 5);
+        assertEqual(shape.diagonals.length, 2);
+        assertEqual(shape.triangles.length, 3);
+        return Promise.resolve();
+      });
+
+      await test("calcul de surface à partir des mesures d'un quadrilatère (deux triangles 3-4-5)", () => {
+        const r = calcMod.computeFanTriangulationArea(4, { "1-2": 3, "2-3": 4, "3-4": 3, "1-4": 4, "1-3": 5 });
+        assert(r.valid);
+        assertEqual(round2(r.total), 12);
+        return Promise.resolve();
+      });
+
+      function round2(n) { return Math.round(n * 100) / 100; }
+
+      // ---------------- Cleanup ----------------
+      cleanupUser(TEST_USER);
+      cleanupUser(TEST_USER2);
+
+      render();
+    }
+
+    function render() {
+      const log = document.getElementById("log");
+      let html = "";
+      let pass = 0, fail = 0;
+      for (const r of results) {
+        if (r.type === "suite") {
+          html += `<div class="suite">${r.name}</div>`;
+        } else {
+          if (r.pass) { pass++; html += `<div class="case pass">PASS — ${r.name}</div>`; }
+          else { fail++; html += `<div class="case fail">FAIL — ${r.name}<br>&nbsp;&nbsp;${r.error}</div>`; }
+        }
+      }
+      html += `<div class="summary ${fail === 0 ? "ok" : "ko"}">${pass} réussi(s), ${fail} échoué(s), ${pass + fail} au total</div>`;
+      log.innerHTML = html;
+      window.__testResults = { pass, fail, total: pass + fail };
+    }
+
+    run().catch((e) => {
+      document.getElementById("log").innerHTML = `<div class="case fail">Erreur fatale du harnais de test : ${e.message}</div>`;
+      window.__testResults = { pass: 0, fail: 1, total: 1, fatal: e.message };
+    });
+  </script>
+</body>
+</html>

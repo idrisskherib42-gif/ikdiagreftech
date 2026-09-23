@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Références techniques — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Base documentaire</span>
+      <h1>Références techniques</h1>
+      <p class="muted">Textes et méthodes de référence, avec statut de version. Utilisez la recherche globale pour retrouver un document.</p>
+    </div>
+    <div id="disclaimer-host"></div>
+
+    <div class="search-bar">
+      <span id="search-icon"></span>
+      <input type="search" id="search-input" placeholder="Rechercher un document, un mot-clé, une norme..." />
+    </div>
+    <div class="filter-row" id="status-filters"></div>
+    <div class="filter-row" id="category-filters"></div>
+
+    <div id="doc-list"></div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { listPublishedDocuments } from "/assets/js/content.js";
+    import { STATUS_LABELS } from "/assets/js/seed.js";
+    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
+    import { formatDate, escapeHtml, debounce } from "/assets/js/util.js";
+
+    if (!mount("references")) throw new Error("redirect");
+    document.getElementById("search-icon").innerHTML = icon("search");
+    document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
+      "Base de démarrage à titre d'exemple. Complétez-la et vérifiez chaque référence via le back-office avant usage professionnel réel."
+    );
+
+    const docs = listPublishedDocuments();
+    let query = "";
+    let statusFilter = "all";
+    let categoryFilter = "all";
+
+    document.getElementById("status-filters").innerHTML = ["all", "en_vigueur", "a_venir", "remplace"].map((s) => `
+      <button class="filter-chip ${statusFilter === s ? "is-active" : ""}" data-status="${s}">${s === "all" ? "Tous statuts" : STATUS_LABELS[s]}</button>
+    `).join("");
+    const categories = ["all", ...new Set(docs.map((d) => d.category))];
+    document.getElementById("category-filters").innerHTML = categories.map((c) => `
+      <button class="filter-chip ${categoryFilter === c ? "is-active" : ""}" data-cat="${c}">${c === "all" ? "Toutes catégories" : (DIAGNOSTIC_TYPES[c]?.label || c)}</button>
+    `).join("");
+
+    function bindFilters() {
+      document.querySelectorAll("[data-status]").forEach((btn) => btn.addEventListener("click", () => {
+        statusFilter = btn.dataset.status;
+        document.querySelectorAll("[data-status]").forEach((b) => b.classList.toggle("is-active", b.dataset.status === statusFilter));
+        render();
+      }));
+      document.querySelectorAll("[data-cat]").forEach((btn) => btn.addEventListener("click", () => {
+        categoryFilter = btn.dataset.cat;
+        document.querySelectorAll("[data-cat]").forEach((b) => b.classList.toggle("is-active", b.dataset.cat === categoryFilter));
+        render();
+      }));
+    }
+
+    document.getElementById("search-input").addEventListener("input", debounce((e) => { query = e.target.value.toLowerCase(); render(); }, 150));
+
+    function render() {
+      const filtered = docs.filter((d) => {
+        if (statusFilter !== "all" && d.status !== statusFilter) return false;
+        if (categoryFilter !== "all" && d.category !== categoryFilter) return false;
+        if (query) {
+          const haystack = `${d.title} ${d.summary} ${(d.tags || []).join(" ")} ${d.source}`.toLowerCase();
+          if (!haystack.includes(query)) return false;
+        }
+        return true;
+      });
+
+      const host = document.getElementById("doc-list");
+      if (!filtered.length) {
+        host.innerHTML = `<div class="card empty-state">${icon("book", "icon-lg")}<p>Aucun document ne correspond à cette recherche.</p></div>`;
+        return;
+      }
+      host.innerHTML = filtered.map((d) => `
+        <div class="card" style="margin-bottom:12px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(d.title)}</strong>
+            <span class="badge badge--${d.status}">${STATUS_LABELS[d.status] || d.status}</span>
+          </div>
+          <p class="text-sm" style="margin-top:6px;">${escapeHtml(d.summary)}</p>
+          <div class="mission-meta">
+            <span>Version : ${escapeHtml(d.version)}</span>
+            <span>En vigueur depuis : ${formatDate(d.dateVigueur)}</span>
+            <span>Source : ${escapeHtml(d.source)}</span>
+          </div>
+          <div class="mt-16 flex-between">
+            <span class="confidence-tag confidence-tag--${d.confidence}">${d.confidence === "etabli" ? "Information établie" : "À vérifier"}</span>
+          </div>
+          ${d.confidenceNote ? `<p class="text-xs muted mt-16">${escapeHtml(d.confidenceNote)}</p>` : ""}
+        </div>
+      `).join("");
+    }
+
+    bindFilters();
+    render();
+  </script>
+</body>
+</html>

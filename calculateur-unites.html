@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Convertisseur d'unités — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content page-content--narrow" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Outils</span>
+      <h1>Convertisseur d'unités</h1>
+    </div>
+
+    <div class="card">
+      <h3>Longueur</h3>
+      <div class="field"><label for="len-m">Mètres</label><input type="number" step="0.001" id="len-m" /></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;">
+        <div><label>Centimètres</label><div class="card" id="len-cm" style="padding:9px 12px;">—</div></div>
+        <div><label>Pieds (ft)</label><div class="card" id="len-ft" style="padding:9px 12px;">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Surface</h3>
+      <div class="field"><label for="area-m2">Mètres carrés (m²)</label><input type="number" step="0.01" id="area-m2" /></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;">
+        <div><label>Pieds carrés (ft²)</label><div class="card" id="area-ft2" style="padding:9px 12px;">—</div></div>
+        <div><label>Ares</label><div class="card" id="area-are" style="padding:9px 12px;">—</div></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    if (!mount("outils")) throw new Error("redirect");
+
+    document.getElementById("len-m").addEventListener("input", (e) => {
+      const m = parseFloat(e.target.value);
+      document.getElementById("len-cm").textContent = isFinite(m) ? `${(m * 100).toFixed(1)} cm` : "—";
+      document.getElementById("len-ft").textContent = isFinite(m) ? `${(m * 3.28084).toFixed(2)} ft` : "—";
+    });
+
+    document.getElementById("area-m2").addEventListener("input", (e) => {
+      const m2 = parseFloat(e.target.value);
+      document.getElementById("area-ft2").textContent = isFinite(m2) ? `${(m2 * 10.7639).toFixed(2)} ft²` : "—";
+      document.getElementById("area-are").textContent = isFinite(m2) ? `${(m2 / 100).toFixed(4)} a` : "—";
+    });
+  </script>
+</body>
+</html>

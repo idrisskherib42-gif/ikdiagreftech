@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Ce qui change bientôt — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Anticipation</span>
+      <h1>Ce qui change bientôt</h1>
+      <p class="muted">Évolutions réglementaires dont l'entrée en vigueur est postérieure à aujourd'hui — à surveiller, pas encore à appliquer.</p>
+    </div>
+    <div id="disclaimer-host"></div>
+    <div id="upcoming-list"></div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { listUpcomingVeille } from "/assets/js/content.js";
+    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
+    import { formatDate, escapeHtml } from "/assets/js/util.js";
+
+    if (!mount("a-venir")) throw new Error("redirect");
+    document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
+      "Les échéances ci-dessous sont indicatives et peuvent être ajustées par le législateur. Ne pas s'y engager contractuellement sans vérification préalable."
+    );
+
+    const items = listUpcomingVeille();
+    const host = document.getElementById("upcoming-list");
+    if (!items.length) {
+      host.innerHTML = `<div class="card empty-state">${icon("clock", "icon-lg")}<p>Aucune évolution à venir suivie pour le moment.</p></div>`;
+    } else {
+      host.innerHTML = items.map((v) => `
+        <div class="card" style="margin-bottom:12px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(v.title)}</strong>
+            <span class="badge badge--a_venir">Entrée en vigueur ${formatDate(v.dateVigueur)}</span>
+          </div>
+          <p class="text-sm" style="margin-top:6px;">${escapeHtml(v.summary)}</p>
+          <p class="text-sm"><strong>À anticiper :</strong> ${escapeHtml(v.impactTerrain)}</p>
+          <div class="flex-between mt-16">
+            <span class="tag">${DIAGNOSTIC_TYPES[v.domain]?.label || "Général"}</span>
+            <span class="confidence-tag confidence-tag--${v.confidence}">${v.confidence === "etabli" ? "Information établie" : "À vérifier"}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+  </script>
+</body>
+</html>

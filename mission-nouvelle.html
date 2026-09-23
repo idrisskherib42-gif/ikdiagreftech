@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Nouvelle mission — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content page-content--narrow" id="page-content">
+    <div class="page-header" id="page-header">
+      <span class="eyebrow">Nouvelle mission</span>
+      <h1>Le bien et le client</h1>
+      <p class="muted">Quelques informations pour démarrer.</p>
+    </div>
+
+    <form id="client-form" class="card">
+      <div class="field">
+        <label for="title">Intitulé de la mission</label>
+        <input type="text" id="title" placeholder="Ex. Vente appartement — 12 rue des Lilas" required />
+      </div>
+      <div class="field">
+        <label for="clientName">Client / donneur d'ordre</label>
+        <input type="text" id="clientName" />
+      </div>
+      <div class="field">
+        <label for="clientPhone">Téléphone du client</label>
+        <input type="tel" id="clientPhone" />
+      </div>
+      <div class="field">
+        <label for="address">Adresse du bien</label>
+        <input type="text" id="address" required />
+      </div>
+      <div class="field">
+        <label for="propertyType">Type de bien</label>
+        <select id="propertyType">
+          <option value="appartement">Appartement</option>
+          <option value="maison">Maison</option>
+          <option value="local_pro">Local professionnel</option>
+          <option value="immeuble">Immeuble collectif</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="scheduledDate">Date de visite prévue</label>
+        <input type="date" id="scheduledDate" />
+      </div>
+      <button type="submit" class="btn btn--block">Continuer vers le questionnaire</button>
+    </form>
+
+    <div id="wizard-host" hidden></div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { createMission } from "/assets/js/missions.js";
+    import { mountEligibilityWizard } from "/assets/js/eligibility-wizard.js";
+
+    if (!mount("mission-new")) throw new Error("redirect");
+
+    const clientForm = document.getElementById("client-form");
+    const wizardHost = document.getElementById("wizard-host");
+
+    clientForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const clientInfo = {
+        title: document.getElementById("title").value,
+        clientName: document.getElementById("clientName").value,
+        clientPhone: document.getElementById("clientPhone").value,
+        address: document.getElementById("address").value,
+        propertyType: document.getElementById("propertyType").value,
+        scheduledDate: document.getElementById("scheduledDate").value,
+      };
+
+      clientForm.hidden = true;
+      document.getElementById("page-header").hidden = true;
+      wizardHost.hidden = false;
+
+      mountEligibilityWizard(wizardHost, {
+        submitLabel: "Créer la mission",
+        onFinalize: async (snapshot, selectedDiagnostics) => {
+          const mission = await createMission({
+            ...clientInfo,
+            buildYear: snapshot.answers.buildYearKnown || "",
+            diagnosticTypes: selectedDiagnostics,
+            eligibility: snapshot,
+          });
+          window.location.href = `/mission-detail.html?id=${mission.id}`;
+        },
+      });
+    });
+  </script>
+</body>
+</html>

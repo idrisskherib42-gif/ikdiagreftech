@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mes missions — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header flex-between">
+      <div>
+        <span class="eyebrow">Missions</span>
+        <h1>Mes missions</h1>
+      </div>
+      <a href="/mission-nouvelle.html" class="btn" id="new-btn">Nouvelle</a>
+    </div>
+
+    <div class="filter-row" id="status-filters"></div>
+    <div id="missions-list"></div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { listMissions, missionProgress, deleteMission } from "/assets/js/missions.js";
+    import { formatDateShort, escapeHtml, confirmDialog, toast } from "/assets/js/util.js";
+
+    if (!mount("missions")) throw new Error("redirect");
+    document.getElementById("new-btn").innerHTML = icon("plus") + " Nouvelle";
+
+    const STATUS_LABELS = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", rapport_envoye: "Rapport envoyé" };
+    let currentFilter = "all";
+    let missions = await listMissions();
+
+    function renderFilters() {
+      const statuses = ["all", ...new Set(missions.map((m) => m.status))];
+      document.getElementById("status-filters").innerHTML = statuses.map((s) => `
+        <button class="filter-chip ${currentFilter === s ? "is-active" : ""}" data-status="${s}">
+          ${s === "all" ? "Toutes" : (STATUS_LABELS[s] || s)}
+        </button>
+      `).join("");
+      document.querySelectorAll(".filter-chip").forEach((btn) => {
+        btn.addEventListener("click", () => { currentFilter = btn.dataset.status; renderFilters(); renderList(); });
+      });
+    }
+
+    function renderList() {
+      const filtered = currentFilter === "all" ? missions : missions.filter((m) => m.status === currentFilter);
+      const host = document.getElementById("missions-list");
+      if (!filtered.length) {
+        host.innerHTML = `<div class="card empty-state">${icon("mission", "icon-lg")}<p>Aucune mission dans cette catégorie.</p></div>`;
+        return;
+      }
+      host.innerHTML = filtered.map((m) => `
+        <div class="card mission-card" style="margin-bottom:12px;">
+          <a href="/mission-detail.html?id=${m.id}" style="display:block;">
+            <div class="mission-card-top">
+              <div>
+                <strong>${escapeHtml(m.title)}</strong>
+                <div class="mission-meta">
+                  <span>${escapeHtml(m.address || "Adresse non renseignée")}</span>
+                  <span>${escapeHtml(m.clientName || "Client non renseigné")}</span>
+                </div>
+              </div>
+              <span class="badge badge--neutral">${STATUS_LABELS[m.status] || m.status}</span>
+            </div>
+            <div class="tag-row" style="margin:8px 0;">
+              ${m.diagnosticTypes.map((t) => `<span class="tag">${t.toUpperCase()}</span>`).join("")}
+            </div>
+            <div class="progress-bar"><div class="progress-bar-fill" style="width:${missionProgress(m)}%"></div></div>
+            <div class="flex-between" style="margin-top:6px;">
+              <span class="text-xs muted">Prévue le ${formatDateShort(m.scheduledDate) || "—"}</span>
+              <span class="text-xs muted">${missionProgress(m)}% de la checklist</span>
+            </div>
+          </a>
+          <div class="btn-row" style="margin-top:10px;">
+            <button class="btn btn--ghost btn--sm delete-btn" data-id="${m.id}">${icon("trash", "icon-sm")} Supprimer</button>
+          </div>
+        </div>
+      `).join("");
+
+      document.querySelectorAll(".delete-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirmDialog("Supprimer définitivement cette mission ?")) return;
+          await deleteMission(btn.dataset.id);
+          missions = await listMissions();
+          renderFilters();
+          renderList();
+          toast("Mission supprimée.", "success");
+        });
+      });
+    }
+
+    renderFilters();
+    renderList();
+  </script>
+</body>
+</html>

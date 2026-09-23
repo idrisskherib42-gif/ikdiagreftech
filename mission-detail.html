@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mission — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header flex-between">
+      <div>
+        <span class="eyebrow">Mission</span>
+        <h1 id="mission-title">—</h1>
+        <p class="muted" id="mission-address">—</p>
+      </div>
+      <select id="status-select">
+        <option value="planifiee">Planifiée</option>
+        <option value="en_cours">En cours</option>
+        <option value="terminee">Terminée</option>
+        <option value="rapport_envoye">Rapport envoyé</option>
+      </select>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn is-active" data-tab="apercu">Aperçu</button>
+      <button class="tab-btn" data-tab="eligibilite">Éligibilité</button>
+      <button class="tab-btn" data-tab="diagnostics">Diagnostics</button>
+      <button class="tab-btn" data-tab="checklist">Checklist</button>
+      <button class="tab-btn" data-tab="photos">Photos</button>
+      <button class="tab-btn" data-tab="mesurage">Mesurage</button>
+    </div>
+
+    <div class="tab-panel is-active" id="panel-apercu"></div>
+    <div class="tab-panel" id="panel-eligibilite"></div>
+    <div class="tab-panel" id="panel-diagnostics"></div>
+    <div class="tab-panel" id="panel-checklist"></div>
+    <div class="tab-panel" id="panel-photos"></div>
+    <div class="tab-panel" id="panel-mesurage"></div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { getMission, updateMission, toggleChecklistItem, missionProgress, addPhoto, removePhoto, addMeasurement, removeMeasurement, applyEligibility } from "/assets/js/missions.js";
+    import { DIAGNOSTIC_TYPES, DIAGNOSTIC_ORDER } from "/assets/js/diagnostic-defs.js";
+    import { qsa, getParam, escapeHtml, formatDate, toast } from "/assets/js/util.js";
+    import { renderChecklist } from "/assets/js/checklist-widget.js";
+    import { renderPhotoTab } from "/assets/js/photo-widget.js";
+    import { renderMeasurementTab } from "/assets/js/measurement-widget.js";
+    import { mountEligibilityWizard } from "/assets/js/eligibility-wizard.js";
+    import { RESULT_LABELS, RULES_ENGINE_VERSION } from "/assets/js/eligibility-rules.js";
+
+    if (!mount("missions")) throw new Error("redirect");
+
+    const missionId = getParam("id");
+    let mission = missionId ? await getMission(missionId) : null;
+    if (!mission) {
+      document.getElementById("page-content").innerHTML = `<div class="card empty-state">${icon("mission", "icon-lg")}<p>Mission introuvable.</p><a class="btn btn--sm" href="/missions.html">Retour aux missions</a></div>`;
+      throw new Error("mission not found");
+    }
+
+    document.getElementById("mission-title").textContent = mission.title;
+    document.getElementById("mission-address").textContent = mission.address || "Adresse non renseignée";
+    document.getElementById("status-select").value = mission.status;
+    document.getElementById("status-select").addEventListener("change", async (e) => {
+      mission = await updateMission(mission.id, { status: e.target.value });
+      toast("Statut mis à jour.", "success");
+    });
+
+    // Tabs
+    function activateTab(tabKey) {
+      qsa(".tab-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.tab === tabKey));
+      qsa(".tab-panel").forEach((p) => p.classList.toggle("is-active", p.id === `panel-${tabKey}`));
+    }
+    qsa(".tab-btn").forEach((btn) => btn.addEventListener("click", () => activateTab(btn.dataset.tab)));
+    const initialTab = getParam("tab");
+    if (initialTab && document.getElementById(`panel-${initialTab}`)) activateTab(initialTab);
+
+    function nextAction() {
+      const remaining = mission.checklist.find((i) => !i.done);
+      if (!remaining) return null;
+      const def = DIAGNOSTIC_TYPES[remaining.diagnosticType];
+      return { label: remaining.label, defLabel: def?.label || remaining.diagnosticType, href: `/diagnostics/module.html?type=${remaining.diagnosticType}&mission=${mission.id}` };
+    }
+
+    function renderApercu() {
+      const host = document.getElementById("panel-apercu");
+      const pct = missionProgress(mission);
+      const next = nextAction();
+      host.innerHTML = `
+        <div class="mission-progress-hero">
+          <div class="progress-pct">${pct}%</div>
+          <div class="progress-label">de la checklist réalisée</div>
+          <div class="progress-bar mt-16"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+          ${next ? `
+            <a class="next-action-card" href="${next.href}" style="color:inherit;text-decoration:none;">
+              ${icon("arrowRight")}
+              <span>
+                <strong>${escapeHtml(next.defLabel)} — ${escapeHtml(next.label)}</strong>
+                <span>Prochaine action à faire</span>
+              </span>
+            </a>
+          ` : `
+            <div class="next-action-card">
+              ${icon("check")}
+              <span><strong>Checklist complète</strong><span>Tous les points de contrôle sont validés</span></span>
+            </div>
+          `}
+        </div>
+        <details class="card" id="info-details">
+          <summary style="cursor:pointer;font-weight:700;">Informations du bien et du client</summary>
+          <div class="mt-16">
+            <div class="field"><label>Client</label><input type="text" id="f-client" value="${escapeHtml(mission.clientName)}" /></div>
+            <div class="field"><label>Téléphone</label><input type="tel" id="f-phone" value="${escapeHtml(mission.clientPhone)}" /></div>
+            <div class="field"><label>Adresse</label><input type="text" id="f-address" value="${escapeHtml(mission.address)}" /></div>
+            <div class="field"><label>Date de visite</label><input type="date" id="f-date" value="${mission.scheduledDate || ""}" /></div>
+            <div class="field"><label>Année de construction</label><input type="number" id="f-year" value="${escapeHtml(mission.buildYear)}" /></div>
+            <button class="btn btn--sm" id="save-apercu">Enregistrer</button>
+          </div>
+        </details>
+      `;
+      document.getElementById("save-apercu").addEventListener("click", async () => {
+        mission = await updateMission(mission.id, {
+          clientName: document.getElementById("f-client").value,
+          clientPhone: document.getElementById("f-phone").value,
+          address: document.getElementById("f-address").value,
+          scheduledDate: document.getElementById("f-date").value,
+          buildYear: document.getElementById("f-year").value,
+        });
+        document.getElementById("mission-address").textContent = mission.address;
+        toast("Mission mise à jour.", "success");
+      });
+    }
+
+    const BLOCK_META = [
+      { result: "obligatoire", key: "todo", title: "À faire" },
+      { result: "a_verifier", key: "check", title: "À vérifier" },
+      { result: "non_concerne", key: "skip", title: "Non concerné" },
+    ];
+
+    function diagnosticCard(key) {
+      const d = DIAGNOSTIC_TYPES[key];
+      const items = mission.checklist.filter((i) => i.diagnosticType === key);
+      const done = items.filter((i) => i.done).length;
+      const pct = items.length ? Math.round((done / items.length) * 100) : 0;
+      return `
+        <a class="status-row" style="display:flex;text-decoration:none;color:inherit;" href="/diagnostics/module.html?type=${key}&mission=${mission.id}">
+          <span class="status-row-body">
+            <strong>${d.label} — ${d.fullLabel}</strong>
+            <div class="progress-bar mt-16" style="height:5px;"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+            <p style="margin-top:6px;">${done}/${items.length} points de contrôle</p>
+          </span>
+          ${icon("arrowRight")}
+        </a>
+      `;
+    }
+
+    function renderDiagnostics() {
+      const host = document.getElementById("panel-diagnostics");
+      if (!mission.diagnosticTypes.length) {
+        host.innerHTML = `<div class="card empty-state">${icon("checklist", "icon-lg")}<p>Aucun diagnostic associé à cette mission.</p></div>`;
+        return;
+      }
+      const results = mission.eligibility?.results;
+      if (!results) {
+        host.innerHTML = `<div class="status-block-items">${mission.diagnosticTypes.map(diagnosticCard).join("")}</div>`;
+        return;
+      }
+      host.innerHTML = BLOCK_META.map(({ result, key, title }) => {
+        const keys = mission.diagnosticTypes.filter((k) => results[k]?.result === result);
+        if (!keys.length) return "";
+        return `
+          <div class="status-block status-block--${key}">
+            <div class="status-block-head"><span class="dot"></span><h3>${title}</h3><span class="count">${keys.length}</span></div>
+            <div class="status-block-items">${keys.map(diagnosticCard).join("")}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderChecklistTab() {
+      const host = document.getElementById("panel-checklist");
+      renderChecklist(host, mission.checklist,
+        async (id, done) => { mission = await toggleChecklistItem(mission.id, id, done); renderChecklistTab(); renderDiagnostics(); renderApercu(); },
+        async (id, note) => { mission = await toggleChecklistItem(mission.id, id, undefined, note); toast("Note enregistrée.", "success"); }
+      );
+    }
+
+    function renderPhotos() {
+      renderPhotoTab(document.getElementById("panel-photos"), mission, {
+        onAdd: (photo) => addPhoto(mission.id, photo).then((m) => { mission = m; return m; }),
+        onRemove: (id) => removePhoto(mission.id, id).then((m) => { mission = m; return m; }),
+      });
+    }
+
+    function renderEligibilite() {
+      const host = document.getElementById("panel-eligibilite");
+      if (!mission.eligibility) {
+        host.innerHTML = `<div class="card"><p class="text-sm muted">Aucun questionnaire d'éligibilité n'a encore été renseigné pour cette mission.</p></div><div id="eligibility-wizard-host"></div>`;
+        mountWizard();
+        return;
+      }
+      const elig = mission.eligibility;
+      const blocks = BLOCK_META.map(({ result, key, title }) => {
+        const keys = DIAGNOSTIC_ORDER.filter((k) => elig.results?.[k]?.result === result);
+        if (!keys.length) return "";
+        return `
+          <div class="status-block status-block--${key}">
+            <div class="status-block-head"><span class="dot"></span><h3>${title}</h3><span class="count">${keys.length}</span></div>
+            <div class="status-block-items">
+              ${keys.map((k) => {
+                const r = elig.results[k];
+                const def = DIAGNOSTIC_TYPES[k];
+                return `
+                  <div class="status-row">
+                    <span class="status-row-body">
+                      <strong>${def.label} — ${def.fullLabel}</strong>
+                      <p>${escapeHtml(r.reason)}</p>
+                      <p class="text-xs muted mt-16">${escapeHtml(r.reference.source)}${r.reference.date ? ` · ${formatDate(r.reference.date)}` : ""}</p>
+                    </span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      host.innerHTML = `
+        <div class="flex-between" style="margin-bottom:var(--sp-4);">
+          <p class="text-xs muted" style="margin:0;">Évalué le ${formatDate(elig.evaluatedAt)} — moteur v${elig.rulesVersion || RULES_ENGINE_VERSION}.</p>
+          <button class="btn btn--secondary btn--sm" id="redo-questionnaire">Reprendre</button>
+        </div>
+        ${blocks}
+        <div class="card">
+          <h3>Documents à demander</h3>
+          <ul>${(elig.documentsToRequest || []).map((d) => `<li class="text-sm">${escapeHtml(d)}</li>`).join("")}</ul>
+        </div>
+        <div id="eligibility-wizard-host"></div>
+      `;
+      document.getElementById("redo-questionnaire").addEventListener("click", () => mountWizard(true));
+    }
+
+    function mountWizard(forceOpen) {
+      const wizardHost = document.getElementById("eligibility-wizard-host");
+      if (!forceOpen && mission.eligibility) { wizardHost.innerHTML = ""; return; }
+      mountEligibilityWizard(wizardHost, {
+        initialAnswers: mission.eligibility?.answers || {},
+        submitLabel: "Mettre à jour la mission",
+        onFinalize: async (snapshot, selectedDiagnostics) => {
+          mission = await applyEligibility(mission.id, snapshot, selectedDiagnostics);
+          toast("Éligibilité mise à jour, diagnostics et checklist ajustés.", "success");
+          renderEligibilite();
+          renderDiagnostics();
+          renderChecklistTab();
+          renderApercu();
+        },
+      });
+    }
+
+    function renderMesurage() {
+      renderMeasurementTab(document.getElementById("panel-mesurage"), mission, {
+        onAdd: (m2) => addMeasurement(mission.id, m2).then((m) => { mission = m; return m; }),
+        onRemove: (id) => removeMeasurement(mission.id, id).then((m) => { mission = m; return m; }),
+      });
+    }
+
+    renderApercu();
+    renderEligibilite();
+    renderDiagnostics();
+    renderChecklistTab();
+    renderPhotos();
+    renderMesurage();
+  </script>
+</body>
+</html>

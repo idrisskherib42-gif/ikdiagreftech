@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Veille réglementaire — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header flex-between">
+      <div>
+        <span class="eyebrow">Veille</span>
+        <h1>Veille réglementaire</h1>
+      </div>
+      <div class="flex gap-8">
+        <button class="icon-btn" id="notif-btn" aria-label="Notifications" title="Activer les notifications"></button>
+        <button class="btn btn--ghost btn--sm" id="mark-all">Tout marquer lu</button>
+      </div>
+    </div>
+    <div id="disclaimer-host"></div>
+    <div id="veille-list"></div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { listPublishedVeille } from "/assets/js/content.js";
+    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
+    import { getReadIds, markRead, markAllRead, requestBrowserNotifications, sendLocalNotification } from "/assets/js/notifications.js";
+    import { formatDate, escapeHtml, toast } from "/assets/js/util.js";
+
+    if (!mount("veille")) throw new Error("redirect");
+    document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
+      "Résumés pédagogiques — à confirmer sur le texte officiel avant de les communiquer à un client."
+    );
+
+    const notifBtn = document.getElementById("notif-btn");
+    const notifSupported = "Notification" in window;
+    function renderNotifBtn() {
+      const on = notifSupported && Notification.permission === "granted";
+      notifBtn.innerHTML = icon(on ? "check" : "bell", "icon-sm");
+      notifBtn.title = !notifSupported ? "Notifications non supportées" : on ? "Notifications activées" : "Activer les notifications";
+      notifBtn.disabled = !notifSupported || on;
+    }
+    renderNotifBtn();
+    notifBtn.addEventListener("click", async () => {
+      const result = await requestBrowserNotifications();
+      renderNotifBtn();
+      if (result === "granted") { sendLocalNotification("IK DIAG", "Notifications activées sur cet appareil."); toast("Notifications activées.", "success"); }
+      else if (result === "denied") toast("Notifications refusées dans le navigateur.", "error");
+    });
+
+    const items = listPublishedVeille();
+    let readIds = getReadIds();
+
+    function statusOf(v) {
+      if (!readIds.includes(v.id)) return "new";
+      const today = new Date().toISOString().slice(0, 10);
+      if (v.dateVigueur && v.dateVigueur > today) return "upcoming";
+      return "live";
+    }
+
+    const GROUPS = [
+      { status: "new", key: "new", title: "Nouveau", icon: "bell" },
+      { status: "upcoming", key: "check", title: "À venir", icon: "clock" },
+      { status: "live", key: "live", title: "En vigueur", icon: "check" },
+    ];
+
+    function render() {
+      const host = document.getElementById("veille-list");
+      host.innerHTML = GROUPS.map(({ status, key, title, icon: ic }) => {
+        const group = items.filter((v) => statusOf(v) === status);
+        if (!group.length) return "";
+        return `
+          <div class="status-block status-block--${key}">
+            <div class="status-block-head"><span class="dot"></span><h3>${title}</h3><span class="count">${group.length}</span></div>
+            <div class="status-block-items">
+              ${group.map((v) => `
+                <div class="card" data-id="${v.id}">
+                  <strong>${escapeHtml(v.title)}</strong>
+                  <p class="text-sm" style="margin-top:6px;">${escapeHtml(v.summary)}</p>
+                  <p class="text-xs muted mt-16">${DIAGNOSTIC_TYPES[v.domain]?.label || "Général"} · ${v.dateVigueur ? `Entrée en vigueur : ${formatDate(v.dateVigueur)}` : `Annoncé le ${formatDate(v.dateAnnonce)}`}</p>
+                  <p class="text-sm" style="margin-top:10px;"><strong>Impact terrain :</strong> ${escapeHtml(v.impactTerrain)}</p>
+                  <p class="text-xs muted mt-16">
+                    Source officielle : ${escapeHtml(v.source)}
+                    <span class="confidence-tag confidence-tag--${v.confidence}" style="margin-left:6px;">${v.confidence === "etabli" ? "confirmée" : "à vérifier"}</span>
+                    ${v.discoveredVia ? `<br/>Repéré via ${escapeHtml(v.discoveredVia)} (source secondaire, non citable seule)` : ""}
+                  </p>
+                  ${status === "new" ? `<button class="btn btn--ghost btn--sm mark-read mt-16" data-id="${v.id}">Marquer comme lu</button>` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).join("") || `<div class="card empty-state">${icon("bell", "icon-lg")}<p>Aucune actualité pour l'instant.</p></div>`;
+
+      host.querySelectorAll(".mark-read").forEach((btn) => btn.addEventListener("click", () => {
+        markRead(btn.dataset.id);
+        readIds = getReadIds();
+        render();
+      }));
+    }
+
+    document.getElementById("mark-all").addEventListener("click", () => {
+      readIds = items.map((i) => i.id);
+      markAllRead(readIds);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

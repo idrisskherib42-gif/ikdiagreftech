@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Back-office — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Back-office</span>
+      <h1>Gestion des contenus</h1>
+      <p class="muted">Ajoutez, modifiez et validez la base documentaire et la veille réglementaire. Un contenu créé ou modifié reste en brouillon jusqu'à validation.</p>
+    </div>
+    <div id="method-disclaimer"></div>
+
+    <div class="tabs">
+      <button class="tab-btn is-active" data-tab="docs">Base documentaire</button>
+      <button class="tab-btn" data-tab="veille">Veille réglementaire</button>
+      <button class="tab-btn" data-tab="monitor">Diagnostics techniques</button>
+    </div>
+
+    <div class="tab-panel is-active" id="panel-docs"></div>
+    <div class="tab-panel" id="panel-veille"></div>
+    <div class="tab-panel" id="panel-monitor"></div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { requireAdmin } from "/assets/js/auth.js";
+    import { listAllDocuments, addDocument, updateDocument, deleteDocument, listAllVeille, addVeille, updateVeille, deleteVeille } from "/assets/js/content.js";
+    import { STATUS_LABELS } from "/assets/js/seed.js";
+    import { DIAGNOSTIC_TYPES, DIAGNOSTIC_ORDER } from "/assets/js/diagnostic-defs.js";
+    import { escapeHtml, formatDateShort, formatDate, confirmDialog, toast, qsa } from "/assets/js/util.js";
+    import { getErrorLog, clearErrorLog, estimateStorageUsage } from "/assets/js/monitor.js";
+
+    if (!mount("admin")) throw new Error("redirect");
+    if (!requireAdmin()) throw new Error("not admin");
+
+    document.getElementById("method-disclaimer").innerHTML = disclaimerBanner(
+      "Méthode de sourcing : des sites spécialisés (DiagActu, Quotidiag...) peuvent servir à repérer un sujet ou une tendance, mais ne sont jamais la source à citer. Le champ « Source officielle » doit toujours pointer vers le texte d'origine (Légifrance/JO, norme AFNOR, ministère, Géorisques...). Si ce texte n'est pas encore identifié avec certitude, laissez la confidence en « à vérifier » plutôt que d'affirmer."
+    );
+
+    qsa(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        qsa(".tab-btn").forEach((b) => b.classList.remove("is-active"));
+        qsa(".tab-panel").forEach((p) => p.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        document.getElementById(`panel-${btn.dataset.tab}`).classList.add("is-active");
+      });
+    });
+
+    function categoryOptions(selected) {
+      return DIAGNOSTIC_ORDER.map((k) => `<option value="${k}" ${selected === k ? "selected" : ""}>${DIAGNOSTIC_TYPES[k].label}</option>`).join("")
+        + `<option value="general" ${selected === "general" ? "selected" : ""}>Général</option>`;
+    }
+
+    // ---------- Documents ----------
+    function renderDocsPanel() {
+      const host = document.getElementById("panel-docs");
+      const docs = listAllDocuments();
+      host.innerHTML = `
+        <div class="card">
+          <h3>Ajouter un document</h3>
+          <form id="doc-form">
+            <div class="field"><label>Titre</label><input type="text" id="d-title" required /></div>
+            <div class="field"><label>Catégorie</label><select id="d-category">${categoryOptions()}</select></div>
+            <div class="field"><label>Statut</label>
+              <select id="d-status"><option value="en_vigueur">En vigueur</option><option value="a_venir">À venir</option><option value="remplace">Remplacé</option></select>
+            </div>
+            <div class="field"><label>Version</label><input type="text" id="d-version" /></div>
+            <div class="field"><label>Date (en vigueur)</label><input type="date" id="d-date" /></div>
+            <div class="field">
+              <label>Source officielle</label>
+              <input type="text" id="d-source" placeholder="Ex. Légifrance — décret n°... du ..., ou norme AFNOR NF..." required />
+              <p class="form-hint">Le texte d'origine, jamais un site d'actualité du secteur.</p>
+            </div>
+            <div class="field"><label>Résumé</label><textarea id="d-summary" required></textarea></div>
+            <label class="checkbox-row" style="font-weight:400;margin-bottom:14px;">
+              <input type="checkbox" id="d-confirmed" />
+              <span>Je confirme cette source officielle avec certitude (sinon reste marqué « à vérifier »)</span>
+            </label>
+            <button type="submit" class="btn btn--sm">Ajouter (brouillon)</button>
+          </form>
+        </div>
+        <div id="docs-list"></div>
+      `;
+
+      document.getElementById("docs-list").innerHTML = docs.map((d) => `
+        <div class="card" style="margin-bottom:10px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(d.title)}</strong>
+            <div class="flex gap-8">
+              <span class="badge badge--${d.status}">${STATUS_LABELS[d.status] || d.status}</span>
+              <span class="badge badge--${d.workflow}">${d.workflow === "valide" ? "Validé" : "Brouillon"}</span>
+            </div>
+          </div>
+          <p class="text-sm" style="margin-top:6px;">${escapeHtml(d.summary)}</p>
+          <div class="mission-meta"><span>${escapeHtml(d.source)}</span><span>${formatDateShort(d.dateVigueur)}</span></div>
+          <div class="btn-row mt-16">
+            ${d.workflow !== "valide" ? `<button class="btn btn--sm validate-doc" data-id="${d.id}">${icon("check","icon-sm")} Valider</button>` : ""}
+            <button class="btn btn--secondary btn--sm delete-doc" data-id="${d.id}">${icon("trash","icon-sm")} Retirer</button>
+          </div>
+        </div>
+      `).join("") || `<div class="card empty-state"><p>Aucun document.</p></div>`;
+
+      document.getElementById("doc-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await addDocument({
+          title: document.getElementById("d-title").value,
+          category: document.getElementById("d-category").value,
+          status: document.getElementById("d-status").value,
+          version: document.getElementById("d-version").value,
+          dateVigueur: document.getElementById("d-date").value,
+          source: document.getElementById("d-source").value,
+          summary: document.getElementById("d-summary").value,
+          tags: [],
+          confidence: document.getElementById("d-confirmed").checked ? "etabli" : "a_verifier",
+        });
+        toast("Document ajouté en brouillon.", "success");
+        renderDocsPanel();
+      });
+      document.querySelectorAll(".validate-doc").forEach((btn) => btn.addEventListener("click", async () => {
+        await updateDocument(btn.dataset.id, { workflow: "valide" });
+        toast("Document validé et publié.", "success");
+        renderDocsPanel();
+      }));
+      document.querySelectorAll(".delete-doc").forEach((btn) => btn.addEventListener("click", async () => {
+        if (!confirmDialog("Retirer ce document de la base ?")) return;
+        await deleteDocument(btn.dataset.id);
+        renderDocsPanel();
+      }));
+    }
+
+    // ---------- Veille ----------
+    function renderVeillePanel() {
+      const host = document.getElementById("panel-veille");
+      const items = listAllVeille();
+      host.innerHTML = `
+        <div class="card">
+          <h3>Ajouter une actualité de veille</h3>
+          <form id="veille-form">
+            <div class="field"><label>Titre</label><input type="text" id="v-title" required /></div>
+            <div class="field"><label>Domaine</label><select id="v-domain">${categoryOptions()}</select></div>
+            <div class="field"><label>Date d'annonce</label><input type="date" id="v-annonce" /></div>
+            <div class="field"><label>Date d'entrée en vigueur (laisser vide si non fixée)</label><input type="date" id="v-vigueur" /></div>
+            <div class="field">
+              <label>Source officielle</label>
+              <input type="text" id="v-source" placeholder="Ex. Légifrance, ecologie.gouv.fr, norme AFNOR..." required />
+              <p class="form-hint">Le texte ou l'organisme d'origine — jamais un site d'actualité du secteur.</p>
+            </div>
+            <div class="field">
+              <label>Repéré via (facultatif)</label>
+              <input type="text" id="v-discovered" placeholder="Ex. DiagActu, Quotidiag..." />
+              <p class="form-hint">Un site spécialisé peut aider à repérer un sujet ; il ne remplace jamais la source officielle ci-dessus.</p>
+            </div>
+            <div class="field"><label>Résumé</label><textarea id="v-summary" required></textarea></div>
+            <div class="field"><label>Impact terrain</label><textarea id="v-impact" required></textarea></div>
+            <label class="checkbox-row" style="font-weight:400;margin-bottom:14px;">
+              <input type="checkbox" id="v-confirmed" />
+              <span>Je confirme cette source officielle avec certitude (sinon reste marqué « à vérifier »)</span>
+            </label>
+            <button type="submit" class="btn btn--sm">Ajouter (brouillon)</button>
+          </form>
+        </div>
+        <div id="veille-admin-list"></div>
+      `;
+
+      document.getElementById("veille-admin-list").innerHTML = items.map((v) => `
+        <div class="card" style="margin-bottom:10px;">
+          <div class="flex-between">
+            <strong>${escapeHtml(v.title)}</strong>
+            <span class="badge badge--${v.workflow}">${v.workflow === "valide" ? "Validé" : "Brouillon"}</span>
+          </div>
+          <p class="text-sm" style="margin-top:6px;">${escapeHtml(v.summary)}</p>
+          <div class="mission-meta"><span>Source : ${escapeHtml(v.source)}</span><span>Vigueur : ${v.dateVigueur ? formatDateShort(v.dateVigueur) : "non fixée"}</span></div>
+          ${v.discoveredVia ? `<p class="text-xs muted mt-16">Repéré via ${escapeHtml(v.discoveredVia)}</p>` : ""}
+          <div class="btn-row mt-16">
+            ${v.workflow !== "valide" ? `<button class="btn btn--sm validate-veille" data-id="${v.id}">${icon("check","icon-sm")} Valider</button>` : ""}
+            <button class="btn btn--secondary btn--sm delete-veille" data-id="${v.id}">${icon("trash","icon-sm")} Retirer</button>
+          </div>
+        </div>
+      `).join("") || `<div class="card empty-state"><p>Aucune actualité.</p></div>`;
+
+      document.getElementById("veille-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await addVeille({
+          title: document.getElementById("v-title").value,
+          domain: document.getElementById("v-domain").value,
+          dateAnnonce: document.getElementById("v-annonce").value,
+          dateVigueur: document.getElementById("v-vigueur").value || null,
+          source: document.getElementById("v-source").value,
+          discoveredVia: document.getElementById("v-discovered").value || null,
+          summary: document.getElementById("v-summary").value,
+          impactTerrain: document.getElementById("v-impact").value,
+          confidence: document.getElementById("v-confirmed").checked ? "etabli" : "a_verifier",
+        });
+        toast("Actualité ajoutée en brouillon.", "success");
+        renderVeillePanel();
+      });
+      document.querySelectorAll(".validate-veille").forEach((btn) => btn.addEventListener("click", async () => {
+        await updateVeille(btn.dataset.id, { workflow: "valide" });
+        toast("Actualité validée et publiée.", "success");
+        renderVeillePanel();
+      }));
+      document.querySelectorAll(".delete-veille").forEach((btn) => btn.addEventListener("click", async () => {
+        if (!confirmDialog("Retirer cette actualité ?")) return;
+        await deleteVeille(btn.dataset.id);
+        renderVeillePanel();
+      }));
+    }
+
+    // ---------- Diagnostics techniques (surveillance minimale) ----------
+    function formatBytes(n) {
+      if (n < 1024) return `${n} o`;
+      if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} Ko`;
+      return `${(n / (1024 * 1024)).toFixed(2)} Mo`;
+    }
+
+    function renderMonitorPanel() {
+      const host = document.getElementById("panel-monitor");
+      const usage = estimateStorageUsage();
+      const quotaEstimate = 5 * 1024 * 1024; // quota localStorage typique le plus bas (~5 Mo, Safari) : hypothèse volontairement prudente
+      const pct = Math.min(100, Math.round((usage.bytes / quotaEstimate) * 100));
+      const entries = getErrorLog();
+      host.innerHTML = `
+        <div class="card">
+          <h3>Occupation du stockage local (ce navigateur)</h3>
+          <p class="text-sm muted">Estimation par rapport au quota le plus restrictif observé (~5 Mo). Chaque utilisateur a son propre stockage : ce chiffre ne concerne que ce poste.</p>
+          <div class="progress-bar mt-16"><div class="progress-bar-fill" style="width:${pct}%;${pct > 80 ? "background:var(--danger);" : ""}"></div></div>
+          <p class="text-sm mt-16">${formatBytes(usage.bytes)} utilisés (~${pct}%)</p>
+          ${pct > 80 ? `<p class="text-sm" style="color:var(--danger);">Proche du quota : les photos sont la cause la plus probable. Invitez les utilisateurs concernés à supprimer les photos des missions terminées.</p>` : ""}
+        </div>
+        <div class="card">
+          <div class="flex-between">
+            <h3 style="margin:0;">Erreurs récentes (ce navigateur, session en cours)</h3>
+            <button class="btn btn--ghost btn--sm" id="clear-log">Effacer</button>
+          </div>
+          <p class="text-sm muted">Capture automatique des erreurs JavaScript et des échecs silencieux (ex. stockage plein). Journal local uniquement, non transmis à un serveur.</p>
+          ${entries.length ? `
+            <table class="mt-16">
+              <thead><tr><th>Heure</th><th>Type</th><th>Message</th></tr></thead>
+              <tbody>
+                ${entries.map((e) => `<tr><td>${formatDate(e.at)}</td><td>${escapeHtml(e.kind)}</td><td>${escapeHtml(e.message)}</td></tr>`).join("")}
+              </tbody>
+            </table>
+          ` : `<p class="text-sm muted mt-16">Aucune erreur capturée depuis l'ouverture de cette page.</p>`}
+        </div>
+      `;
+      document.getElementById("clear-log").addEventListener("click", () => { clearErrorLog(); renderMonitorPanel(); });
+    }
+
+    renderDocsPanel();
+    renderVeillePanel();
+    renderMonitorPanel();
+  </script>
+</body>
+</html>

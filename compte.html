@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mon compte — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content page-content--narrow" id="page-content">
+    <div class="page-header">
+      <span class="eyebrow">Compte</span>
+      <h1>Mon compte</h1>
+    </div>
+
+    <div class="card">
+      <h3>Identité</h3>
+      <p class="text-sm"><strong id="acc-name"></strong></p>
+      <p class="text-sm muted" id="acc-role"></p>
+    </div>
+
+    <div id="disclaimer-host"></div>
+
+    <div class="card">
+      <h3>Sauvegarder mes missions</h3>
+      <p class="text-sm muted">Vos missions ne sont stockées que dans ce navigateur, chiffrées avec votre mot de passe. Sans sauvegarde, un poste perdu, réinitialisé ou dont les données de navigation sont effacées entraîne une perte définitive. Le fichier exporté reste chiffré : il n'est utilisable qu'avec cet identifiant et ce mot de passe.</p>
+      <button class="btn btn--block mt-16" id="export-btn">Télécharger une sauvegarde</button>
+    </div>
+
+    <div class="card">
+      <h3>Restaurer une sauvegarde</h3>
+      <p class="text-sm muted">Fusionne avec vos missions actuelles (aucune mission plus récente n'est perdue), sauf si vous choisissez de tout remplacer.</p>
+      <div class="field mt-16">
+        <input type="file" id="restore-input" accept="application/json" />
+      </div>
+      <div class="btn-row">
+        <button class="btn btn--sm" id="restore-merge-btn" disabled>Fusionner</button>
+        <button class="btn btn--secondary btn--sm" id="restore-replace-btn" disabled>Tout remplacer</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { mount, disclaimerBanner } from "/assets/js/nav.js";
+    import { currentUser } from "/assets/js/auth.js";
+    import { exportBackup, restoreBackup } from "/assets/js/missions.js";
+    import { toast, confirmDialog, formatDate } from "/assets/js/util.js";
+
+    if (!mount("compte")) throw new Error("redirect");
+
+    const user = currentUser();
+    document.getElementById("acc-name").textContent = user.fullName;
+    document.getElementById("acc-role").textContent = user.role === "admin" ? "Administrateur (accès back-office)" : "Diagnostiqueur";
+
+    document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
+      "Il n'existe aucune copie de vos données ailleurs que dans ce navigateur. Faites une sauvegarde régulièrement, en particulier avant de changer d'appareil ou de réinitialiser ce poste."
+    );
+
+    document.getElementById("export-btn").addEventListener("click", async () => {
+      try {
+        const backup = await exportBackup();
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const stamp = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `ikdiag-sauvegarde-${user.username}-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast("Sauvegarde téléchargée.", "success");
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    });
+
+    let pendingFile = null;
+    const fileInput = document.getElementById("restore-input");
+    const mergeBtn = document.getElementById("restore-merge-btn");
+    const replaceBtn = document.getElementById("restore-replace-btn");
+
+    fileInput.addEventListener("change", async () => {
+      pendingFile = null;
+      mergeBtn.disabled = true;
+      replaceBtn.disabled = true;
+      const file = fileInput.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        pendingFile = JSON.parse(text);
+        mergeBtn.disabled = false;
+        replaceBtn.disabled = false;
+      } catch (err) {
+        toast("Fichier illisible : ce n'est pas un JSON valide.", "error");
+      }
+    });
+
+    mergeBtn.addEventListener("click", async () => {
+      try {
+        await restoreBackup(pendingFile, "merge");
+        toast("Sauvegarde fusionnée avec vos missions actuelles.", "success");
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    });
+
+    replaceBtn.addEventListener("click", async () => {
+      if (!confirmDialog("Remplacer TOUTES vos missions actuelles par le contenu de cette sauvegarde ? Cette action est irréversible.")) return;
+      try {
+        await restoreBackup(pendingFile, "replace");
+        toast("Missions remplacées par la sauvegarde.", "success");
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    });
+  </script>
+</body>
+</html>

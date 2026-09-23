@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Connexion — IK DIAG</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-mark" style="width:44px;height:44px;font-size:16px;">IK</span>
+        <div><strong style="font-size:18px;">IK DIAG</strong><br><small class="muted">Réf Technique</small></div>
+      </div>
+      <h1>Connexion</h1>
+      <p class="auth-tagline">Le copilote terrain du diagnostiqueur immobilier.</p>
+
+      <form id="login-form">
+        <div class="field">
+          <label for="username">Identifiant</label>
+          <input type="text" id="username" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" autocomplete="current-password" required />
+        </div>
+        <div id="form-error" class="form-error" hidden></div>
+        <button type="submit" class="btn btn--block">Se connecter</button>
+      </form>
+
+      <p class="auth-foot">Pas encore de compte ? <a href="/register.html" style="color:var(--primary);font-weight:600;">Créer un compte</a></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { login, isAuthenticated } from "/assets/js/auth.js";
+    import { getParam } from "/assets/js/util.js";
+
+    if (isAuthenticated()) window.location.href = "/index.html";
+
+    const form = document.getElementById("login-form");
+    const errorBox = document.getElementById("form-error");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      try {
+        await login(username, password);
+        const next = getParam("next");
+        window.location.href = next || "/index.html";
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>

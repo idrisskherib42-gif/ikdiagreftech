@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>IK DIAG — Réf Technique</title>
+<link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="app-shell"></div>
+  <main class="page-content page-content--narrow" id="page-content">
+    <div class="hero-greeting">
+      <span class="eyebrow">IK DIAG</span>
+      <h1 id="greeting">Bonjour</h1>
+      <p class="muted">Une action à la fois. Que voulez-vous faire ?</p>
+    </div>
+
+    <div class="primary-actions">
+      <a class="primary-action primary-action--main" href="/mission-nouvelle.html">
+        <span class="primary-action-icon" id="i-plus"></span>
+        <span class="primary-action-body">
+          <strong>Nouvelle mission</strong>
+          <span class="primary-action-desc">Créer une mission et démarrer le questionnaire</span>
+        </span>
+        <span class="primary-action-arrow" id="i-arrow1"></span>
+      </a>
+      <a class="primary-action" href="/missions.html">
+        <span class="primary-action-icon" id="i-mission"></span>
+        <span class="primary-action-body">
+          <strong>Reprendre une mission</strong>
+          <span class="primary-action-desc" id="resume-desc">Voir mes missions en cours</span>
+        </span>
+        <span class="primary-action-arrow" id="i-arrow2"></span>
+      </a>
+      <a class="primary-action" href="/assistant-terrain.html">
+        <span class="primary-action-icon" id="i-assistant"></span>
+        <span class="primary-action-body">
+          <strong>Assistant IK DIAG</strong>
+          <span class="primary-action-desc">Guidage sur place, question par question</span>
+        </span>
+        <span class="primary-action-arrow" id="i-arrow3"></span>
+      </a>
+    </div>
+
+    <div id="alerts-host"></div>
+  </main>
+
+  <script type="module">
+    import { mount } from "/assets/js/nav.js";
+    import { icon } from "/assets/js/icons.js";
+    import { currentUser } from "/assets/js/auth.js";
+    import { listMissions, missionProgress } from "/assets/js/missions.js";
+    import { listPublishedVeille } from "/assets/js/content.js";
+    import { getReadIds } from "/assets/js/notifications.js";
+    import { escapeHtml } from "/assets/js/util.js";
+
+    if (!mount("home")) throw new Error("redirect");
+    const user = currentUser();
+    if (user) document.getElementById("greeting").textContent = `Bonjour, ${user.fullName.split(" ")[0]}`;
+
+    for (const id of ["i-plus", "i-mission", "i-assistant"]) {
+      document.getElementById(id).innerHTML = icon(id === "i-plus" ? "plus" : id === "i-mission" ? "mission" : "field");
+    }
+    for (const id of ["i-arrow1", "i-arrow2", "i-arrow3"]) {
+      document.getElementById(id).innerHTML = icon("chevronRight");
+    }
+
+    const missions = await listMissions();
+    const active = missions.filter((m) => m.status !== "rapport_envoye");
+    document.getElementById("resume-desc").textContent = active.length
+      ? `${active.length} mission${active.length > 1 ? "s" : ""} en cours`
+      : "Aucune mission en cours pour l'instant";
+
+    const veille = listPublishedVeille();
+    const readIds = getReadIds();
+    const unread = veille.filter((v) => !readIds.includes(v.id));
+
+    const alerts = [];
+    const mostUrgent = active.sort((a, b) => missionProgress(a) - missionProgress(b))[0];
+    if (mostUrgent) {
+      alerts.push({
+        icon: "mission", live: false, href: `/mission-detail.html?id=${mostUrgent.id}`,
+        title: escapeHtml(mostUrgent.title),
+        sub: `${missionProgress(mostUrgent)}% de la checklist réalisée`,
+      });
+    }
+    if (unread.length) {
+      alerts.push({
+        icon: "bell", live: true, href: "/veille.html",
+        title: `${unread.length} nouveauté${unread.length > 1 ? "s" : ""} réglementaire${unread.length > 1 ? "s" : ""}`,
+        sub: "Non lue" + (unread.length > 1 ? "s" : "") + " dans la veille",
+      });
+    }
+
+    const host = document.getElementById("alerts-host");
+    if (alerts.length) {
+      host.innerHTML = `
+        <p class="section-label">À votre attention</p>
+        <div class="alert-list">
+          ${alerts.map((a) => `
+            <a class="alert-item ${a.live ? "alert-item--live" : ""}" href="${a.href}">
+              ${icon(a.icon)}
+              <span>
+                <strong>${a.title}</strong>
+                <span class="alert-sub">${a.sub}</span>
+              </span>
+            </a>
+          `).join("")}
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
