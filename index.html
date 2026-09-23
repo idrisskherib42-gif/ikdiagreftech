@@ -79,14 +79,14 @@
     const mostUrgent = active.sort((a, b) => missionProgress(a) - missionProgress(b))[0];
     if (mostUrgent) {
       alerts.push({
-        icon: "mission", live: false, href: `/mission-detail.html?id=${mostUrgent.id}`,
+        icon: "mission", live: false, href: `./mission-detail.html?id=${mostUrgent.id}`,
         title: escapeHtml(mostUrgent.title),
         sub: `${missionProgress(mostUrgent)}% de la checklist réalisée`,
       });
     }
     if (unread.length) {
       alerts.push({
-        icon: "bell", live: true, href: "/veille.html",
+        icon: "bell", live: true, href: "./veille.html",
         title: `${unread.length} nouveauté${unread.length > 1 ? "s" : ""} réglementaire${unread.length > 1 ? "s" : ""}`,
         sub: "Non lue" + (unread.length > 1 ? "s" : "") + " dans la veille",
       });

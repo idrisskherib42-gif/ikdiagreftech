@@ -50,7 +50,7 @@
       try {
         await login(username, password);
         const next = getParam("next");
-        window.location.href = next || "/index.html";
+        window.location.href = next || "./index.html";
       } catch (err) {
         errorBox.textContent = err.message;
         errorBox.hidden = false;

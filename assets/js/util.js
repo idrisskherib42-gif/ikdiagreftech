@@ -1,5 +1,14 @@
 // Utilitaires génériques partagés par toute l'application IK DIAG.
 
+// Racine réelle de l'appli, déduite de l'URL de ce module plutôt que codée en
+// dur en "/" : fonctionne aussi bien servie à la racine (localhost) que sous
+// un sous-dossier (ex. GitHub Pages, /ikdiagreftech/). À utiliser pour toute
+// URL absolue interne (hrefs de navigation, redirections).
+const APP_ROOT = new URL("../../", import.meta.url);
+export function appUrl(relativePath) {
+  return new URL(relativePath, APP_ROOT).href;
+}
+
 export function uuid() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {

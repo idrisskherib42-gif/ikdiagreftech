@@ -11,6 +11,7 @@
 
 import { listPublishedDocuments, listPublishedVeille } from "./content.js";
 import { DIAGNOSTIC_TYPES } from "./diagnostic-defs.js";
+import { appUrl } from "./util.js";
 
 const STOPWORDS = new Set(["le","la","les","de","des","du","un","une","et","en","pour","sur","dans","est","que","qui","quoi","quel","quelle","comment","avec","au","aux","ce","cette","ces","il","elle","à","d","l","son","sa","ses","par","plus","ne","pas","se","sont"]);
 
@@ -37,7 +38,7 @@ function buildCorpus() {
       confidence: d.confidence,
       confidenceNote: d.confidenceNote,
       status: d.status,
-      href: "/references.html",
+      href: appUrl("references.html"),
     });
   }
 
@@ -51,7 +52,7 @@ function buildCorpus() {
       dateLabel: v.dateVigueur ? "Entrée en vigueur" : "Annoncé le",
       confidence: v.confidence,
       confidenceNote: v.confidenceNote,
-      href: "/veille.html",
+      href: appUrl("veille.html"),
     });
   }
 
@@ -66,7 +67,7 @@ function buildCorpus() {
       dateLabel: null,
       confidence: d.reglementation.confidence,
       confidenceNote: d.reglementation.note,
-      href: `/diagnostics/module.html?type=${key}`,
+      href: appUrl(`diagnostics/module.html?type=${key}`),
     });
   }
 

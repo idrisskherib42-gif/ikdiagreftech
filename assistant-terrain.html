@@ -54,7 +54,7 @@
       const remaining = mission.checklist.find((i) => !i.done);
       if (!remaining) return null;
       const def = DIAGNOSTIC_TYPES[remaining.diagnosticType];
-      return { label: remaining.label, defLabel: def?.label || remaining.diagnosticType, href: `/diagnostics/module.html?type=${remaining.diagnosticType}&mission=${mission.id}` };
+      return { label: remaining.label, defLabel: def?.label || remaining.diagnosticType, href: `./diagnostics/module.html?type=${remaining.diagnosticType}&mission=${mission.id}` };
     }
 
     async function render() {
