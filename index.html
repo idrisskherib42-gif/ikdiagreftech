@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>IK DIAG — Réf Technique</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -16,7 +16,7 @@
     </div>
 
     <div class="primary-actions">
-      <a class="primary-action primary-action--main" href="/mission-nouvelle.html">
+      <a class="primary-action primary-action--main" href="./mission-nouvelle.html">
         <span class="primary-action-icon" id="i-plus"></span>
         <span class="primary-action-body">
           <strong>Nouvelle mission</strong>
@@ -24,7 +24,7 @@
         </span>
         <span class="primary-action-arrow" id="i-arrow1"></span>
       </a>
-      <a class="primary-action" href="/missions.html">
+      <a class="primary-action" href="./missions.html">
         <span class="primary-action-icon" id="i-mission"></span>
         <span class="primary-action-body">
           <strong>Reprendre une mission</strong>
@@ -32,7 +32,7 @@
         </span>
         <span class="primary-action-arrow" id="i-arrow2"></span>
       </a>
-      <a class="primary-action" href="/assistant-terrain.html">
+      <a class="primary-action" href="./assistant-terrain.html">
         <span class="primary-action-icon" id="i-assistant"></span>
         <span class="primary-action-body">
           <strong>Assistant IK DIAG</strong>
@@ -46,13 +46,13 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { currentUser } from "/assets/js/auth.js";
-    import { listMissions, missionProgress } from "/assets/js/missions.js";
-    import { listPublishedVeille } from "/assets/js/content.js";
-    import { getReadIds } from "/assets/js/notifications.js";
-    import { escapeHtml } from "/assets/js/util.js";
+    import { mount } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
+    import { currentUser } from "./assets/js/auth.js";
+    import { listMissions, missionProgress } from "./assets/js/missions.js";
+    import { listPublishedVeille } from "./assets/js/content.js";
+    import { getReadIds } from "./assets/js/notifications.js";
+    import { escapeHtml } from "./assets/js/util.js";
 
     if (!mount("home")) throw new Error("redirect");
     const user = currentUser();

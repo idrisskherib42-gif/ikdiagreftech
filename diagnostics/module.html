@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Diagnostic — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="../assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -24,12 +24,12 @@
   </main>
 
   <script type="module">
-    import { mount, disclaimerBanner } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
-    import { getMission, toggleChecklistItem } from "/assets/js/missions.js";
-    import { renderChecklist } from "/assets/js/checklist-widget.js";
-    import { getParam, qsa, escapeHtml, toast } from "/assets/js/util.js";
+    import { mount, disclaimerBanner } from "../assets/js/nav.js";
+    import { icon } from "../assets/js/icons.js";
+    import { DIAGNOSTIC_TYPES } from "../assets/js/diagnostic-defs.js";
+    import { getMission, toggleChecklistItem } from "../assets/js/missions.js";
+    import { renderChecklist } from "../assets/js/checklist-widget.js";
+    import { getParam, qsa, escapeHtml, toast } from "../assets/js/util.js";
 
     if (!mount("diagnostics")) throw new Error("redirect");
 
@@ -38,7 +38,7 @@
     const def = DIAGNOSTIC_TYPES[typeKey];
 
     if (!def) {
-      document.getElementById("page-content").innerHTML = `<div class="card empty-state"><p>Module de diagnostic inconnu.</p><a class="btn btn--sm" href="/diagnostics.html">Retour</a></div>`;
+      document.getElementById("page-content").innerHTML = `<div class="card empty-state"><p>Module de diagnostic inconnu.</p><a class="btn btn--sm" href="../diagnostics.html">Retour</a></div>`;
       throw new Error("unknown module");
     }
 
@@ -46,7 +46,7 @@
       <span class="eyebrow">${missionId ? "Mission en cours" : "Consultation libre"}</span>
       <h1>${def.fullLabel}</h1>
       <p class="muted">${def.summary}</p>
-      ${missionId ? `<a href="/mission-detail.html?id=${missionId}" class="text-sm" style="font-weight:600;color:var(--primary-dark);">&larr; Retour à la mission</a>` : ""}
+      ${missionId ? `<a href="../mission-detail.html?id=${missionId}" class="text-sm" style="font-weight:600;color:var(--primary-dark);">&larr; Retour à la mission</a>` : ""}
     `;
 
     document.getElementById("disclaimer-host").innerHTML = disclaimerBanner(
@@ -121,7 +121,7 @@
         </p>
         ${def.reglementation.note ? `<p class="text-xs muted">${def.reglementation.note}</p>` : ""}
         <p class="text-xs muted mt-16">Pour le texte intégral et sa version consolidée en vigueur, consultez Légifrance ou le site du ministère compétent.</p>
-        <a class="btn btn--secondary btn--sm mt-16" href="/references.html">Voir la base documentaire</a>
+        <a class="btn btn--secondary btn--sm mt-16" href="../references.html">Voir la base documentaire</a>
       </div>
     `;
   </script>

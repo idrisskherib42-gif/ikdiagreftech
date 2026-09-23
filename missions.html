@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Mes missions — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -14,7 +14,7 @@
         <span class="eyebrow">Missions</span>
         <h1>Mes missions</h1>
       </div>
-      <a href="/mission-nouvelle.html" class="btn" id="new-btn">Nouvelle</a>
+      <a href="./mission-nouvelle.html" class="btn" id="new-btn">Nouvelle</a>
     </div>
 
     <div class="filter-row" id="status-filters"></div>
@@ -22,10 +22,10 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { listMissions, missionProgress, deleteMission } from "/assets/js/missions.js";
-    import { formatDateShort, escapeHtml, confirmDialog, toast } from "/assets/js/util.js";
+    import { mount } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
+    import { listMissions, missionProgress, deleteMission } from "./assets/js/missions.js";
+    import { formatDateShort, escapeHtml, confirmDialog, toast } from "./assets/js/util.js";
 
     if (!mount("missions")) throw new Error("redirect");
     document.getElementById("new-btn").innerHTML = icon("plus") + " Nouvelle";
@@ -55,7 +55,7 @@
       }
       host.innerHTML = filtered.map((m) => `
         <div class="card mission-card" style="margin-bottom:12px;">
-          <a href="/mission-detail.html?id=${m.id}" style="display:block;">
+          <a href="./mission-detail.html?id=${m.id}" style="display:block;">
             <div class="mission-card-top">
               <div>
                 <strong>${escapeHtml(m.title)}</strong>

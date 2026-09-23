@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Assistant IA — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -26,10 +26,10 @@
   </main>
 
   <script type="module">
-    import { mount, disclaimerBanner } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { answerQuestion } from "/assets/js/assistant.js";
-    import { escapeHtml, formatDate } from "/assets/js/util.js";
+    import { mount, disclaimerBanner } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
+    import { answerQuestion } from "./assets/js/assistant.js";
+    import { escapeHtml, formatDate } from "./assets/js/util.js";
 
     if (!mount("assistant-ia")) throw new Error("redirect");
 

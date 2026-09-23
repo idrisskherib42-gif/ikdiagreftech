@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Back-office — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -28,14 +28,14 @@
   </main>
 
   <script type="module">
-    import { mount, disclaimerBanner } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { requireAdmin } from "/assets/js/auth.js";
-    import { listAllDocuments, addDocument, updateDocument, deleteDocument, listAllVeille, addVeille, updateVeille, deleteVeille } from "/assets/js/content.js";
-    import { STATUS_LABELS } from "/assets/js/seed.js";
-    import { DIAGNOSTIC_TYPES, DIAGNOSTIC_ORDER } from "/assets/js/diagnostic-defs.js";
-    import { escapeHtml, formatDateShort, formatDate, confirmDialog, toast, qsa } from "/assets/js/util.js";
-    import { getErrorLog, clearErrorLog, estimateStorageUsage } from "/assets/js/monitor.js";
+    import { mount, disclaimerBanner } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
+    import { requireAdmin } from "./assets/js/auth.js";
+    import { listAllDocuments, addDocument, updateDocument, deleteDocument, listAllVeille, addVeille, updateVeille, deleteVeille } from "./assets/js/content.js";
+    import { STATUS_LABELS } from "./assets/js/seed.js";
+    import { DIAGNOSTIC_TYPES, DIAGNOSTIC_ORDER } from "./assets/js/diagnostic-defs.js";
+    import { escapeHtml, formatDateShort, formatDate, confirmDialog, toast, qsa } from "./assets/js/util.js";
+    import { getErrorLog, clearErrorLog, estimateStorageUsage } from "./assets/js/monitor.js";
 
     if (!mount("admin")) throw new Error("redirect");
     if (!requireAdmin()) throw new Error("not admin");

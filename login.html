@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Connexion — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div class="auth-shell">
@@ -29,13 +29,13 @@
         <button type="submit" class="btn btn--block">Se connecter</button>
       </form>
 
-      <p class="auth-foot">Pas encore de compte ? <a href="/register.html" style="color:var(--primary);font-weight:600;">Créer un compte</a></p>
+      <p class="auth-foot">Pas encore de compte ? <a href="./register.html" style="color:var(--primary);font-weight:600;">Créer un compte</a></p>
     </div>
   </div>
 
   <script type="module">
-    import { login, isAuthenticated } from "/assets/js/auth.js";
-    import { getParam } from "/assets/js/util.js";
+    import { login, isAuthenticated } from "./assets/js/auth.js";
+    import { getParam } from "./assets/js/util.js";
 
     if (isAuthenticated()) window.location.href = "/index.html";
 

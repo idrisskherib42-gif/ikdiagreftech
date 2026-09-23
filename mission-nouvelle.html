@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Nouvelle mission — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -52,9 +52,9 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
-    import { createMission } from "/assets/js/missions.js";
-    import { mountEligibilityWizard } from "/assets/js/eligibility-wizard.js";
+    import { mount } from "./assets/js/nav.js";
+    import { createMission } from "./assets/js/missions.js";
+    import { mountEligibilityWizard } from "./assets/js/eligibility-wizard.js";
 
     if (!mount("mission-new")) throw new Error("redirect");
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Checklists — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -18,11 +18,11 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { listMissions, missionProgress } from "/assets/js/missions.js";
-    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
-    import { escapeHtml } from "/assets/js/util.js";
+    import { mount } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
+    import { listMissions, missionProgress } from "./assets/js/missions.js";
+    import { DIAGNOSTIC_TYPES } from "./assets/js/diagnostic-defs.js";
+    import { escapeHtml } from "./assets/js/util.js";
 
     if (!mount("checklists")) throw new Error("redirect");
 
@@ -30,12 +30,12 @@
     const host = document.getElementById("checklists-host");
 
     if (!missions.length) {
-      host.innerHTML = `<div class="card empty-state">${icon("checklist", "icon-lg")}<p>Aucune mission avec checklist pour l'instant.</p><a class="btn btn--sm" href="/mission-nouvelle.html">Créer une mission</a></div>`;
+      host.innerHTML = `<div class="card empty-state">${icon("checklist", "icon-lg")}<p>Aucune mission avec checklist pour l'instant.</p><a class="btn btn--sm" href="./mission-nouvelle.html">Créer une mission</a></div>`;
     } else {
       host.innerHTML = missions.map((m) => {
         const remaining = m.checklist.filter((i) => !i.done);
         return `
-          <a class="card" href="/mission-detail.html?id=${m.id}&tab=checklist" style="display:block;margin-bottom:12px;">
+          <a class="card" href="./mission-detail.html?id=${m.id}&tab=checklist" style="display:block;margin-bottom:12px;">
             <div class="flex-between">
               <div>
                 <strong>${escapeHtml(m.title)}</strong>

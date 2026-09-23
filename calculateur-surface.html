@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Calculateur de surface — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -36,10 +36,10 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
-    import { rectangleArea, round2 } from "/assets/js/calculators.js";
-    import { qsa } from "/assets/js/util.js";
-    import { mountTriangulationFlow } from "/assets/js/triangulation-flow.js";
+    import { mount } from "./assets/js/nav.js";
+    import { rectangleArea, round2 } from "./assets/js/calculators.js";
+    import { qsa } from "./assets/js/util.js";
+    import { mountTriangulationFlow } from "./assets/js/triangulation-flow.js";
 
     if (!mount("outils")) throw new Error("redirect");
 

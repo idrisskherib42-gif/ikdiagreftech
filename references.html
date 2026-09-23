@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Références techniques — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -27,12 +27,12 @@
   </main>
 
   <script type="module">
-    import { mount, disclaimerBanner } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { listPublishedDocuments } from "/assets/js/content.js";
-    import { STATUS_LABELS } from "/assets/js/seed.js";
-    import { DIAGNOSTIC_TYPES } from "/assets/js/diagnostic-defs.js";
-    import { formatDate, escapeHtml, debounce } from "/assets/js/util.js";
+    import { mount, disclaimerBanner } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
+    import { listPublishedDocuments } from "./assets/js/content.js";
+    import { STATUS_LABELS } from "./assets/js/seed.js";
+    import { DIAGNOSTIC_TYPES } from "./assets/js/diagnostic-defs.js";
+    import { formatDate, escapeHtml, debounce } from "./assets/js/util.js";
 
     if (!mount("references")) throw new Error("redirect");
     document.getElementById("search-icon").innerHTML = icon("search");

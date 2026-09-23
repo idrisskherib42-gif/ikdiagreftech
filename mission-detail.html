@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Mission — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -41,23 +41,23 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
-    import { getMission, updateMission, toggleChecklistItem, missionProgress, addPhoto, removePhoto, addMeasurement, removeMeasurement, applyEligibility } from "/assets/js/missions.js";
-    import { DIAGNOSTIC_TYPES, DIAGNOSTIC_ORDER } from "/assets/js/diagnostic-defs.js";
-    import { qsa, getParam, escapeHtml, formatDate, toast } from "/assets/js/util.js";
-    import { renderChecklist } from "/assets/js/checklist-widget.js";
-    import { renderPhotoTab } from "/assets/js/photo-widget.js";
-    import { renderMeasurementTab } from "/assets/js/measurement-widget.js";
-    import { mountEligibilityWizard } from "/assets/js/eligibility-wizard.js";
-    import { RESULT_LABELS, RULES_ENGINE_VERSION } from "/assets/js/eligibility-rules.js";
+    import { mount } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
+    import { getMission, updateMission, toggleChecklistItem, missionProgress, addPhoto, removePhoto, addMeasurement, removeMeasurement, applyEligibility } from "./assets/js/missions.js";
+    import { DIAGNOSTIC_TYPES, DIAGNOSTIC_ORDER } from "./assets/js/diagnostic-defs.js";
+    import { qsa, getParam, escapeHtml, formatDate, toast } from "./assets/js/util.js";
+    import { renderChecklist } from "./assets/js/checklist-widget.js";
+    import { renderPhotoTab } from "./assets/js/photo-widget.js";
+    import { renderMeasurementTab } from "./assets/js/measurement-widget.js";
+    import { mountEligibilityWizard } from "./assets/js/eligibility-wizard.js";
+    import { RESULT_LABELS, RULES_ENGINE_VERSION } from "./assets/js/eligibility-rules.js";
 
     if (!mount("missions")) throw new Error("redirect");
 
     const missionId = getParam("id");
     let mission = missionId ? await getMission(missionId) : null;
     if (!mission) {
-      document.getElementById("page-content").innerHTML = `<div class="card empty-state">${icon("mission", "icon-lg")}<p>Mission introuvable.</p><a class="btn btn--sm" href="/missions.html">Retour aux missions</a></div>`;
+      document.getElementById("page-content").innerHTML = `<div class="card empty-state">${icon("mission", "icon-lg")}<p>Mission introuvable.</p><a class="btn btn--sm" href="./missions.html">Retour aux missions</a></div>`;
       throw new Error("mission not found");
     }
 
@@ -146,7 +146,7 @@
       const done = items.filter((i) => i.done).length;
       const pct = items.length ? Math.round((done / items.length) * 100) : 0;
       return `
-        <a class="status-row" style="display:flex;text-decoration:none;color:inherit;" href="/diagnostics/module.html?type=${key}&mission=${mission.id}">
+        <a class="status-row" style="display:flex;text-decoration:none;color:inherit;" href="./diagnostics/module.html?type=${key}&mission=${mission.id}">
           <span class="status-row-body">
             <strong>${d.label} — ${d.fullLabel}</strong>
             <div class="progress-bar mt-16" style="height:5px;"><div class="progress-bar-fill" style="width:${pct}%"></div></div>

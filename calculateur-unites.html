@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Convertisseur d'unités — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -34,7 +34,7 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
+    import { mount } from "./assets/js/nav.js";
     if (!mount("outils")) throw new Error("redirect");
 
     document.getElementById("len-m").addEventListener("input", (e) => {

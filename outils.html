@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Outils et calculateurs — IK DIAG</title>
-<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
   <div id="app-shell"></div>
@@ -16,12 +16,12 @@
     </div>
 
     <div class="grid grid-tiles">
-      <a class="tile" href="/calculateur-surface.html">
+      <a class="tile" href="./calculateur-surface.html">
         <span class="tile-icon" id="i-ruler"></span>
         <strong>Surface &amp; triangulation</strong>
         <span class="tile-desc">Carrez / Boutin, pièces sans angle droit</span>
       </a>
-      <a class="tile" href="/calculateur-unites.html">
+      <a class="tile" href="./calculateur-unites.html">
         <span class="tile-icon" id="i-tools"></span>
         <strong>Convertisseur d'unités</strong>
         <span class="tile-desc">Longueurs, surfaces</span>
@@ -40,8 +40,8 @@
   </main>
 
   <script type="module">
-    import { mount } from "/assets/js/nav.js";
-    import { icon } from "/assets/js/icons.js";
+    import { mount } from "./assets/js/nav.js";
+    import { icon } from "./assets/js/icons.js";
     if (!mount("outils")) throw new Error("redirect");
     document.getElementById("i-ruler").innerHTML = icon("ruler");
     document.getElementById("i-tools").innerHTML = icon("tools");

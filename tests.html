@@ -52,11 +52,11 @@
     }
 
     async function run() {
-      const authMod = await import("/assets/js/auth.js");
-      const storeMod = await import("/assets/js/store.js");
-      const missionsMod = await import("/assets/js/missions.js");
-      const rulesMod = await import("/assets/js/eligibility-rules.js");
-      const calcMod = await import("/assets/js/calculators.js");
+      const authMod = await import("./assets/js/auth.js");
+      const storeMod = await import("./assets/js/store.js");
+      const missionsMod = await import("./assets/js/missions.js");
+      const rulesMod = await import("./assets/js/eligibility-rules.js");
+      const calcMod = await import("./assets/js/calculators.js");
 
       const TEST_USER = "__test_user__";
       const TEST_USER2 = "__test_user2__";
