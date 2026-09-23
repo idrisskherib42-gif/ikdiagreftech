@@ -10,6 +10,14 @@ const LEGACY_ITERATIONS = 120000;
 const SESSION_KEY = "session";
 const LOGIN_ATTEMPTS_KEY = "login_attempts";
 
+// Racine réelle de l'appli, déduite de l'URL de ce module lui-même plutôt que
+// codée en dur en "/" : fonctionne aussi bien servie à la racine (localhost)
+// que sous un sous-dossier (ex. GitHub Pages, /ikdiagreftech/).
+const APP_ROOT = new URL("../../", import.meta.url);
+function appUrl(relativePath) {
+  return new URL(relativePath, APP_ROOT).href;
+}
+
 // ---------- Protection anti brute-force ----------
 // Pas de serveur ici pour appliquer un vrai rate limit réseau : le verrou est
 // posé côté client, dans localStorage (donc partagé entre onglets et persiste
@@ -143,7 +151,7 @@ async function startSession(user, password) {
 
 export function logout() {
   sessionRemove(SESSION_KEY);
-  window.location.href = "/login.html";
+  window.location.href = appUrl("login.html");
 }
 
 export function currentSession() {
@@ -167,13 +175,13 @@ export function currentUser() {
   return users.find((u) => u.id === s.userId) || null;
 }
 
-const PUBLIC_PAGES = ["/login.html", "/register.html", "/"];
+const PUBLIC_PAGES = [appUrl("login.html"), appUrl("register.html"), appUrl("")].map((u) => new URL(u).pathname);
 
 export function requireAuth() {
   if (!isAuthenticated()) {
     const path = window.location.pathname;
     if (!PUBLIC_PAGES.includes(path)) {
-      window.location.href = "/login.html?next=" + encodeURIComponent(path + window.location.search);
+      window.location.href = appUrl("login.html") + "?next=" + encodeURIComponent(path + window.location.search);
     }
     return false;
   }
@@ -183,7 +191,7 @@ export function requireAuth() {
 export function requireAdmin() {
   const u = currentUser();
   if (!u || u.role !== "admin") {
-    window.location.href = "/index.html";
+    window.location.href = appUrl("index.html");
     return false;
   }
   return true;
