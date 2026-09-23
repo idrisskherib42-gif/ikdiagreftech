@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mot de passe oublié — IK DIAG</title>
+<link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-mark" style="width:44px;height:44px;font-size:16px;">IK</span>
+        <div><strong style="font-size:18px;">IK DIAG</strong><br><small class="muted">Réf Technique</small></div>
+      </div>
+      <h1>Mot de passe oublié</h1>
+      <p class="auth-tagline">Saisissez votre clé de récupération (affichée une seule fois à la création du compte) pour définir un nouveau mot de passe. Vos missions restent intactes.</p>
+
+      <form id="reset-form">
+        <div class="field">
+          <label for="username">Identifiant</label>
+          <input type="text" id="username" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="recoveryKey">Clé de récupération</label>
+          <input type="text" id="recoveryKey" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" required style="font-family:monospace;letter-spacing:0.5px;" />
+        </div>
+        <div class="field">
+          <label for="newPassword">Nouveau mot de passe (8 caractères min.)</label>
+          <input type="password" id="newPassword" autocomplete="new-password" minlength="8" required />
+        </div>
+        <div id="form-error" class="form-error" hidden></div>
+        <button type="submit" class="btn btn--block">Définir le nouveau mot de passe</button>
+      </form>
+
+      <p class="auth-foot">
+        Pas de clé de récupération enregistrée ? Elle n'existe que pour les comptes créés après l'ajout de cette fonctionnalité — sans elle, la récupération n'est pas possible (voir l'avertissement à l'inscription).
+      </p>
+      <p class="auth-foot"><a href="./login.html" style="color:var(--primary);font-weight:600;">Retour à la connexion</a></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { resetPasswordWithRecoveryKey, isAuthenticated } from "./assets/js/auth.js";
+
+    if (isAuthenticated()) window.location.href = "./index.html";
+
+    const form = document.getElementById("reset-form");
+    const errorBox = document.getElementById("form-error");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      const username = document.getElementById("username").value;
+      const recoveryKey = document.getElementById("recoveryKey").value;
+      const newPassword = document.getElementById("newPassword").value;
+      try {
+        await resetPasswordWithRecoveryKey(username, recoveryKey, newPassword);
+        window.location.href = "./index.html";
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>

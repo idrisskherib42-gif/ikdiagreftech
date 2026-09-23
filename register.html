@@ -33,7 +33,20 @@
         <button type="submit" class="btn btn--block">Créer mon compte</button>
       </form>
 
-      <p class="auth-foot">Déjà inscrit ? <a href="./login.html" style="color:var(--primary);font-weight:600;">Se connecter</a></p>
+      <div id="recovery-screen" hidden>
+        <p class="auth-tagline" style="color:var(--danger,#c0392b);font-weight:600;">Notez cette clé maintenant — elle ne sera plus jamais affichée. Elle seule permet de récupérer l'accès si vous oubliez votre mot de passe.</p>
+        <div class="card" style="padding:16px;text-align:center;">
+          <code id="recovery-key-display" style="font-size:16px;font-weight:700;letter-spacing:1px;word-break:break-all;"></code>
+        </div>
+        <button type="button" class="btn btn--secondary btn--block mt-16" id="copy-key-btn">Copier la clé</button>
+        <label class="field" style="display:flex;align-items:center;gap:8px;margin-top:16px;">
+          <input type="checkbox" id="confirm-saved" style="width:auto;" />
+          <span>J'ai noté ma clé de récupération en lieu sûr</span>
+        </label>
+        <button type="button" class="btn btn--block mt-16" id="continue-btn" disabled>Continuer vers l'application</button>
+      </div>
+
+      <p class="auth-foot" id="login-link-foot">Déjà inscrit ? <a href="./login.html" style="color:var(--primary);font-weight:600;">Se connecter</a></p>
     </div>
   </div>
 
@@ -44,22 +57,36 @@
 
     const form = document.getElementById("register-form");
     const errorBox = document.getElementById("form-error");
+    const recoveryScreen = document.getElementById("recovery-screen");
+    const confirmCheckbox = document.getElementById("confirm-saved");
+    const continueBtn = document.getElementById("continue-btn");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       errorBox.hidden = true;
       try {
-        await register({
+        const user = await register({
           fullName: document.getElementById("fullName").value,
           username: document.getElementById("username").value,
           password: document.getElementById("password").value,
         });
-        window.location.href = "./index.html";
+        document.getElementById("recovery-key-display").textContent = user.recoveryKey;
+        form.hidden = true;
+        document.getElementById("login-link-foot").hidden = true;
+        recoveryScreen.hidden = false;
       } catch (err) {
         errorBox.textContent = err.message;
         errorBox.hidden = false;
       }
     });
+
+    document.getElementById("copy-key-btn").addEventListener("click", async () => {
+      const text = document.getElementById("recovery-key-display").textContent;
+      try { await navigator.clipboard.writeText(text); } catch (e) { /* copie manuelle si l'API est indisponible */ }
+    });
+
+    confirmCheckbox.addEventListener("change", () => { continueBtn.disabled = !confirmCheckbox.checked; });
+    continueBtn.addEventListener("click", () => { window.location.href = "./index.html"; });
   </script>
 </body>
 </html>

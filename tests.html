@@ -101,6 +101,16 @@
 
       await test("connexion avec identifiant inexistant renvoie le même message (pas d'énumération)", async () => {
         sessionStorage.clear();
+        // Nettoie le compteur d'échecs des deux identifiants avant de comparer :
+        // sans ça, ré-exécuter cette suite plusieurs fois dans le même
+        // navigateur finit par déclencher le verrouillage anti brute-force sur
+        // "ce_compte_n_existe_pas" (jamais nettoyé ailleurs), ce qui change le
+        // message et fait échouer le test pour une raison sans rapport avec
+        // l'anti-énumération elle-même.
+        const attempts = storeMod.getRaw("login_attempts", {});
+        delete attempts[TEST_USER];
+        delete attempts["ce_compte_n_existe_pas"];
+        storeMod.setRaw("login_attempts", attempts);
         let msg1, msg2;
         try { await authMod.login(TEST_USER, "wrong-password"); } catch (e) { msg1 = e.message; }
         try { await authMod.login("ce_compte_n_existe_pas", "whatever"); } catch (e) { msg2 = e.message; }

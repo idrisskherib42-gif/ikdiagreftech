@@ -1,6 +1,17 @@
 import { getRaw, setRaw, sessionGet, sessionSet, sessionRemove, Collections } from "./store.js";
-import { randomSaltHex, hashPassword, deriveAesKey, exportKeyRaw, importKeyRaw, DEFAULT_PBKDF2_ITERATIONS } from "./crypto.js";
+import { randomSaltHex, hashPassword, deriveAesKey, exportKeyRaw, importKeyRaw, DEFAULT_PBKDF2_ITERATIONS, generateDek, wrapDek, unwrapDek } from "./crypto.js";
 import { uuid } from "./util.js";
+
+// Clé de récupération : 16 octets aléatoires (128 bits), affichés groupés par
+// 4 caractères pour la lisibilité (ex. A1B2-C3D4-...). La dérivation utilise
+// toujours la forme brute (minuscules, sans tirets) : la mise en forme n'est
+// que pour l'affichage/la saisie.
+function formatRecoveryKey(rawHex) {
+  return rawHex.toUpperCase().match(/.{1,4}/g).join("-");
+}
+function normalizeRecoveryKey(input) {
+  return (input || "").toLowerCase().replace(/[^a-f0-9]/g, "");
+}
 
 // Itérations PBKDF2 utilisées par les comptes créés avant l'introduction du
 // champ `iterations` sur l'enregistrement utilisateur — à ne jamais changer
@@ -96,24 +107,43 @@ export async function register({ username, password, fullName }) {
   }
   const role = users.length === 0 ? "admin" : "diagnostiqueur";
   const saltHash = randomSaltHex();
-  const saltAes = randomSaltHex();
+  const saltAesPassword = randomSaltHex();
+  const saltAesRecovery = randomSaltHex();
   const iterations = DEFAULT_PBKDF2_ITERATIONS;
   const passwordHash = await hashPassword(password, saltHash, iterations);
+
+  // DEK aléatoire, enveloppée par une clé dérivée du mot de passe ET par une
+  // clé dérivée de la clé de récupération (voir crypto.js). Ni l'une ni
+  // l'autre clé n'est jamais stockée : seules les enveloppes chiffrées le
+  // sont.
+  const dek = await generateDek();
+  const kekPassword = await deriveAesKey(password, saltAesPassword, iterations);
+  const wrappedDekPassword = await wrapDek(kekPassword, dek);
+  const recoveryKeyRaw = randomSaltHex(16);
+  const kekRecovery = await deriveAesKey(recoveryKeyRaw, saltAesRecovery, iterations);
+  const wrappedDekRecovery = await wrapDek(kekRecovery, dek);
+
   const user = {
     id: uuid(),
     username,
     fullName: fullName || username,
     role,
     saltHash,
-    saltAes,
     passwordHash,
     iterations,
+    saltAesPassword,
+    wrappedDekPassword,
+    saltAesRecovery,
+    wrappedDekRecovery,
     createdAt: new Date().toISOString(),
   };
   users.push(user);
   saveUsers(users);
-  await startSession(user, password);
-  return user;
+  await startSession(user, dek);
+  // `recoveryKey` n'est qu'une propriété de la valeur de retour (en mémoire,
+  // pour l'écran d'inscription) : l'objet `user` réellement persisté dans
+  // `users` ci-dessus ne la contient pas.
+  return { ...user, recoveryKey: formatRecoveryKey(recoveryKeyRaw) };
 }
 
 export async function login(username, password) {
@@ -132,14 +162,27 @@ export async function login(username, password) {
     throw new Error("Identifiant ou mot de passe incorrect.");
   }
   recordSuccess(username);
-  await startSession(user, password);
+  const dek = await resolveDek(user, password);
+  await startSession(user, dek);
   return user;
 }
 
-async function startSession(user, password) {
+// Comptes créés avant l'introduction de la clé de récupération : ils n'ont
+// qu'un `saltAes` et la clé AES était dérivée directement du mot de passe
+// (pas de DEK enveloppée). On garde ce chemin fonctionnel tel quel — ces
+// comptes n'ont simplement pas de clé de récupération tant qu'ils ne sont
+// pas re-créés.
+async function resolveDek(user, password) {
   const iterations = user.iterations || LEGACY_ITERATIONS;
-  const aesKey = await deriveAesKey(password, user.saltAes, iterations);
-  const aesKeyB64 = await exportKeyRaw(aesKey);
+  if (user.wrappedDekPassword) {
+    const kekPassword = await deriveAesKey(password, user.saltAesPassword, iterations);
+    return unwrapDek(kekPassword, user.wrappedDekPassword);
+  }
+  return deriveAesKey(password, user.saltAes, iterations);
+}
+
+async function startSession(user, dek) {
+  const aesKeyB64 = await exportKeyRaw(dek);
   sessionSet(SESSION_KEY, {
     userId: user.id,
     username: user.username,
@@ -153,6 +196,44 @@ async function startSession(user, password) {
 export function logout() {
   sessionRemove(SESSION_KEY);
   window.location.href = appUrl("login.html");
+}
+
+// Réinitialise le mot de passe SANS perdre les missions : la clé de
+// récupération permet de retrouver la DEK (indépendamment du mot de passe),
+// qui est ensuite ré-enveloppée avec le nouveau mot de passe. Les missions
+// elles-mêmes ne sont jamais déchiffrées/rechiffrées ici. N'existe pas pour
+// les comptes créés avant l'introduction de la clé de récupération.
+export async function resetPasswordWithRecoveryKey(username, recoveryKeyInput, newPassword) {
+  username = username.trim().toLowerCase();
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error("Le nouveau mot de passe doit faire au moins 8 caractères.");
+  }
+  const users = getUsers();
+  const user = users.find((u) => u.username === username);
+  if (!user || !user.wrappedDekRecovery) {
+    throw new Error("Identifiant introuvable ou clé de récupération indisponible pour ce compte.");
+  }
+  const recoveryKeyRaw = normalizeRecoveryKey(recoveryKeyInput);
+  const kekRecovery = await deriveAesKey(recoveryKeyRaw, user.saltAesRecovery, user.iterations || DEFAULT_PBKDF2_ITERATIONS);
+  let dek;
+  try {
+    dek = await unwrapDek(kekRecovery, user.wrappedDekRecovery);
+  } catch (e) {
+    throw new Error("Clé de récupération incorrecte.");
+  }
+
+  const saltHash = randomSaltHex();
+  const saltAesPassword = randomSaltHex();
+  const iterations = DEFAULT_PBKDF2_ITERATIONS;
+  user.saltHash = saltHash;
+  user.passwordHash = await hashPassword(newPassword, saltHash, iterations);
+  user.iterations = iterations;
+  user.saltAesPassword = saltAesPassword;
+  user.wrappedDekPassword = await wrapDek(await deriveAesKey(newPassword, saltAesPassword, iterations), dek);
+  saveUsers(users);
+
+  await startSession(user, dek);
+  return user;
 }
 
 export function currentSession() {
@@ -192,7 +273,7 @@ export function currentUser() {
 // session valide comme n'importe quelle autre page privée. Un visiteur qui
 // arrive sur l'URL racine (ex. lien direct, favori) doit être envoyé vers la
 // connexion, jamais voir le tableau de bord vide s'afficher.
-const PUBLIC_PAGES = [appUrl("login.html"), appUrl("register.html")].map((u) => new URL(u).pathname);
+const PUBLIC_PAGES = [appUrl("login.html"), appUrl("register.html"), appUrl("mot-de-passe-oublie.html")].map((u) => new URL(u).pathname);
 
 export function requireAuth() {
   if (!isAuthenticated()) {

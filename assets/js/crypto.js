@@ -77,6 +77,27 @@ export async function importKeyRaw(b64) {
   return crypto.subtle.importKey("raw", fromB64(b64), "AES-GCM", true, ["encrypt", "decrypt"]);
 }
 
+// Clé de chiffrement des données (DEK) : clé AES-256 aléatoire, indépendante
+// du mot de passe. Elle est "enveloppée" (chiffrée) séparément par une clé
+// dérivée du mot de passe ET par une clé dérivée de la clé de récupération.
+// Changer le mot de passe ne ré-enveloppe que cette petite clé (voir
+// auth.js) : les missions elles-mêmes n'ont jamais besoin d'être
+// déchiffrées/rechiffrées en masse, et la clé de récupération permet de
+// retrouver l'accès sans connaître l'ancien mot de passe.
+export async function generateDek() {
+  return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+}
+
+export async function wrapDek(kek, dek) {
+  const raw = await exportKeyRaw(dek);
+  return encryptJSON(kek, { k: raw });
+}
+
+export async function unwrapDek(kek, wrapped) {
+  const { k } = await decryptJSON(kek, wrapped);
+  return importKeyRaw(k);
+}
+
 export async function encryptJSON(key, obj) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const plaintext = enc.encode(JSON.stringify(obj));
