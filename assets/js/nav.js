@@ -61,7 +61,7 @@ export function mount(active, { auth = true } = {}) {
     <header class="topbar">
       <button class="icon-btn menu-toggle" id="menu-toggle" aria-label="Menu">${icon("settings")}</button>
       <a class="brand" href="${appUrl("index.html")}">
-        <span class="brand-mark">IK</span>
+        <img class="brand-mark" src="${appUrl("assets/img/logo-icon.png")}" alt="IK DIAG" />
         <span class="brand-text"><strong>IK DIAG</strong><small>Réf Technique</small></span>
       </a>
       <div class="topbar-actions">
@@ -72,7 +72,7 @@ export function mount(active, { auth = true } = {}) {
     <nav class="side-drawer" id="side-drawer" aria-hidden="true">
       <div class="side-drawer-inner">
         <div class="side-drawer-head">
-          <span class="brand-mark">IK</span>
+          <img class="brand-mark" src="${appUrl("assets/img/logo-icon.png")}" alt="IK DIAG" />
           <div><strong>IK DIAG</strong><br><small>Réf Technique</small></div>
         </div>
         <div class="side-nav">

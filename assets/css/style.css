@@ -92,8 +92,7 @@ body.has-shell { padding-top: var(--header-h); padding-bottom: calc(var(--bottom
 .icon-btn:hover { background: var(--surface-alt); }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand-mark {
-  width: 34px; height: 34px; border-radius: 9px; background: var(--primary); color: #fff;
-  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
+  width: 34px; height: 34px; display: block; object-fit: contain; flex-shrink: 0;
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand-text strong { font-size: 15px; letter-spacing: 0.01em; }
